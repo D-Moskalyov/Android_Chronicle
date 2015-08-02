@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Chronicle</string>
+    <string name="preference_file_key">com.chronicle.app.prefsFile</string>
+    <string name="menu_item">Set Interval</string>
+</resources>

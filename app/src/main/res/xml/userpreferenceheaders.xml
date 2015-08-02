@@ -1,0 +1,10 @@
+<preference-headers xmlns:android="http://schemas.android.com/apk/res/android">
+    <header android:fragment="com.chronicle.app.FragmentPreferenceActivity$UserFragmentPreference"
+            android:title="Interval"
+            android:summary="Set Interval Preference"
+            />
+    <!--<header android:fragment="com.chronicle.app.User2FragmentPreference"-->
+            <!--android:title="Interval2"-->
+            <!--android:summary="Set 2 Interval Preference"-->
+            <!--/>-->
+</preference-headers>
