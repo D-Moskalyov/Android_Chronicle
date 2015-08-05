@@ -21,6 +21,7 @@ import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.internal.StreetViewLifecycleDelegate;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+//import kankan.wheel.widget;
 
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -94,12 +95,21 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void onClickPreferences(View view){
-        Class c = Build.VERSION.SDK_INT <Build.VERSION_CODES.HONEYCOMB ?
-                OldPreferenceActivity.class : FragmentPreferenceActivity.class;
-        Intent i = new Intent(this, c);
-        startActivityForResult(i, SHOW_PREFERENCES);
-
-//        Intent i = new Intent(this, OldPreferenceActivity.class);
+//        Class c = Build.VERSION.SDK_INT <Build.VERSION_CODES.HONEYCOMB ?
+//                OldPreferenceActivity.class : FragmentPreferenceActivity.class;
+//        Intent i = new Intent(this, c);
 //        startActivityForResult(i, SHOW_PREFERENCES);
+
+        Intent i = new Intent(this, OldPreferenceActivity.class);
+        startActivityForResult(i, SHOW_PREFERENCES);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == SHOW_PREFERENCES) {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+
+
     }
 }

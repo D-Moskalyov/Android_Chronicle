@@ -4,4 +4,9 @@
             android:key="checkbox_preference"
             android:title="Chek"
             android:summary="Chek Summ" />
+    <com.chronicle.app.NumberPickerPreference
+            android:key="number_picker_preference"
+            android:title="number"
+            android:summary="picker" />
+
 </PreferenceScreen>
