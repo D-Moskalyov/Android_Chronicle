@@ -29,11 +29,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     //SupportMapFragment mapFragment;
     //GoogleMap map;
     //final String TAG = "myLogs";
+    SharedPreferences settings;
     private static final int SHOW_PREFERENCES = 1;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
         setContentView(R.layout.main_layout);
 
         //Fragment.setHasOptionsMenu(true);
@@ -72,7 +74,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void onSetTen(View view){
-        SharedPreferences settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.putInt("value", 10);
 
@@ -80,7 +81,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void onSetFive(View view){
-        SharedPreferences settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
         SharedPreferences.Editor editor = settings.edit();
         editor.putInt("value", 5);
 
@@ -88,7 +88,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     public void onShowValue(View view){
-        SharedPreferences settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
         int value = settings.getInt("value", 0);
         Context context = getApplicationContext();
         Toast.makeText(context, String.valueOf(value), Toast.LENGTH_SHORT).show();
@@ -100,7 +99,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        Intent i = new Intent(this, c);
 //        startActivityForResult(i, SHOW_PREFERENCES);
 
-        Intent i = new Intent(this, OldPreferenceActivity.class);
+//        Intent i = new Intent(this, OldPreferenceActivity.class);
+//        startActivityForResult(i, SHOW_PREFERENCES);
+
+        Intent i = new Intent(this, SettingActivity.class);
         startActivityForResult(i, SHOW_PREFERENCES);
     }
 
@@ -111,5 +113,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
 
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
     }
 }
