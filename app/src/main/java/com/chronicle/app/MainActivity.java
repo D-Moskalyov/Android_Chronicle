@@ -14,6 +14,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.os.Bundle;
 import android.view.Window;
+import android.widget.Button;
 import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
@@ -37,6 +38,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
         setContentView(R.layout.main_layout);
+        Button mainButton = (Button) this.findViewById(R.id.settingsButton);
+        mainButton.setText("main");
 
         //Fragment.setHasOptionsMenu(true);
 
