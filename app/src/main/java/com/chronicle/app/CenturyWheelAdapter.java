@@ -3,9 +3,6 @@ package com.chronicle.app;
 import android.content.Context;
 import kankan.wheel.widget.adapters.ArrayWheelAdapter;
 
-/**
- * Created by ִלטענטי on 06.08.2015.
- */
 public class CenturyWheelAdapter extends ArrayWheelAdapter {
 
     //Object[] centurys;

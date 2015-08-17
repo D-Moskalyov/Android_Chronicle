@@ -14,6 +14,7 @@ repositories {
 
 android {
     compileSdkVersion 22
+    compileOptions.encoding = 'ISO-8859-1'
     buildToolsVersion "23.0.0 rc3"
     defaultConfig {
         applicationId "com.chronicle.app"

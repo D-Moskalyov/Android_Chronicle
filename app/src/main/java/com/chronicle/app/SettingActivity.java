@@ -14,18 +14,29 @@ import org.apache.http.params.CoreConnectionPNames;
 
 import java.util.Objects;
 
-/**
- * Created by ִלטענטי on 06.08.2015.
- */
 public class SettingActivity extends Activity {
 
     private boolean scrolling = false;
     private int indexOfFirstCenturyAC = 20;
     SharedPreferences mySharedPreferences;
 
+    WheelView centuryStart = null;
+    WheelView centuryFinish = null;
+    WheelView yearStart = null;
+    WheelView yearFinish = null;
+
+    TextView intervalText;
+
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        //if(centuryStart != null && mySharedPreferences != null) {
+            //String str = MakeIntervalString(centuryStart, centuryFinish, yearStart, yearFinish);
+            SharedPreferences.Editor editor = mySharedPreferences.edit();
+            editor.putString("intervalString", intervalText.getText().toString());
+            editor.apply();
+        //}
     }
 
     @Override
@@ -79,12 +90,12 @@ public class SettingActivity extends Activity {
                 "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XIII", "XIX", "XX", "XXI"
         };
 
-        final TextView intervalText = (TextView) findViewById(R.id.intervalText);
+        intervalText = (TextView) findViewById(R.id.intervalText);
 
-        final WheelView centuryStart = (WheelView) findViewById(R.id.century_start);
+        centuryStart = (WheelView) findViewById(R.id.century_start);
         centuryStart.setVisibleItems(5);
 
-        final WheelView centuryFinish = (WheelView) findViewById(R.id.century_finish);
+        centuryFinish = (WheelView) findViewById(R.id.century_finish);
         centuryFinish.setVisibleItems(5);
 
         ArrayWheelAdapter<String> centuryAdapter =
@@ -97,11 +108,11 @@ public class SettingActivity extends Activity {
         centuryFinish.setCurrentItem(40);
 
 
-        final WheelView yearStart = (WheelView) findViewById(R.id.year_start);
+        yearStart = (WheelView) findViewById(R.id.year_start);
         yearStart.setVisibleItems(5);
         yearStart.setCyclic(true);
 
-        final WheelView yearFinish = (WheelView) findViewById(R.id.year_finish);
+        yearFinish = (WheelView) findViewById(R.id.year_finish);
         yearFinish.setVisibleItems(5);
         yearFinish.setCyclic(true);
 
