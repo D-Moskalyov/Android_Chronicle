@@ -26,6 +26,8 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import wikipedia.Wiki;
 
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.util.Objects;
 //import kankan.wheel.widget;
 
 
@@ -38,6 +40,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private static final int SHOW_PREFERENCES = 1;
     Button mainButton;
     Wiki wikipedia;
+
+    GetPageAsync getPageAsync;
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -122,9 +126,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(requestCode == SHOW_PREFERENCES) {
             super.onActivityResult(requestCode, resultCode, data);
         }
-
-
     }
+
+//    public Objects onRetainNonConfigurationInstance(){
+//        return getPageAsync;
+//    }
 
     @Override
     protected void onResume() {
@@ -140,10 +146,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //            e.printStackTrace();
 //        }
 
-        new GetPage().execute("1925");
+        //getPageAsync = (GetPageAsync) getLastNonConfigurationInstance();
+        //if(getPageAsync == null)
+        getPageAsync = new GetPageAsync();
+        getPageAsync.execute(("1426_год_до_н._э."));
     }
 
-    private class GetPage extends AsyncTask<String, String, String> {
+    private class GetPageAsync extends AsyncTask<String, String, String> {
+
         protected String doInBackground(String... strs) {
             int count = strs.length;
             String page = null;
@@ -163,8 +173,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //            setProgressPercent(progress[0]);
 //        }
 //
-//        protected void onPostExecute(Long result) {
-//            showDialog("Downloaded " + result + " bytes");
-//        }
+        protected void onPostExecute(String result) {
+            if(result == null || result.contains("#перенаправление"))
+                return;
+            String str = result;
+        }
     }
 }

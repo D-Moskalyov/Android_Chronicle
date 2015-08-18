@@ -14,7 +14,9 @@ repositories {
 
 android {
     compileSdkVersion 22
-    compileOptions.encoding = 'ISO-8859-1'
+    //compileOptions.encoding = 'UTF-8'
+    //compileOptions.encoding = 'ISO-8859-1'
+    compileOptions.encoding = 'Windows-1251'
     buildToolsVersion "23.0.0 rc3"
     defaultConfig {
         applicationId "com.chronicle.app"
@@ -43,4 +45,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:22.2.1'
     compile project (':wheel')
 }
+
 

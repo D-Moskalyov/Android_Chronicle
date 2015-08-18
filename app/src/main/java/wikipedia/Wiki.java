@@ -42,7 +42,8 @@ public class Wiki implements Serializable{
 
     public Wiki()
     {
-        this("en.wikipedia.org", "/w");
+        //this("en.wikipedia.org", "/w");
+        this("ru.wikipedia.org", "/w");
     }
 
     public Wiki(String domain)
@@ -314,8 +315,7 @@ public class Wiki implements Serializable{
         return Normalizer.normalize(temp2, Normalizer.Form.NFC);
     }
 
-    protected void logurl(String url, String method)
-    {
+    protected void logurl(String url, String method) {
         logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", url);
     }
 
