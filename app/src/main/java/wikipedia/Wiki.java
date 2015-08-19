@@ -259,6 +259,26 @@ public class Wiki implements Serializable{
 //            }
 //    }
 
+    public long getPageRevId(String title){
+        StringBuilder url = new StringBuilder(query);
+        url.append("prop=revisions&rvprop=ids&titles=");
+        url.append(title);
+        String IDString = "0";
+
+        try {
+            String line = fetch(url.toString() + title, "getPageRevId");
+
+            int x = line.indexOf("\"revid\":") + 9;
+            int y = line.indexOf(",", x);
+
+            IDString = line.substring(x, y);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return Long.parseLong(IDString);
+    }
+
     protected URLConnection makeConnection(String url) throws IOException
     {
         return new URL(url).openConnection();

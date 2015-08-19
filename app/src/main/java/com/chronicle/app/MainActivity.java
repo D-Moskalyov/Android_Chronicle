@@ -1,9 +1,13 @@
 package com.chronicle.app;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
 import android.opengl.EGLSurface;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -27,6 +31,10 @@ import wikipedia.Wiki;
 
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Objects;
 //import kankan.wheel.widget;
 
@@ -39,9 +47,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     SharedPreferences settings;
     private static final int SHOW_PREFERENCES = 1;
     Button mainButton;
+
     Wiki wikipedia;
 
+    DBHelper dbHelper;
+    SQLiteDatabase db;
+
+    SimpleDateFormat dateFormat;
+
     GetPageAsync getPageAsync;
+
+    String LOG_TAG = "INF:";
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,7 +67,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mainButton = (Button) this.findViewById(R.id.settingsButton);
         mainButton.setText("main");
 
+        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
         wikipedia = new Wiki();
+
+        dbHelper = new DBHelper(this);
+        db = dbHelper.getWritableDatabase();
+
+        ContentValues cv = new ContentValues();
+
+        cv.put("year", 1935);
+        cv.put("revisionID", 1);
+        Date date = new Date();
+        cv.put("lastUpdate", dateFormat.format(date));
+
+        long id = db.insert("Page", null, cv);
+        dbHelper.close();
 
         //Fragment.setHasOptionsMenu(true);
 
@@ -148,9 +179,56 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         //getPageAsync = (GetPageAsync) getLastNonConfigurationInstance();
         //if(getPageAsync == null)
-        getPageAsync = new GetPageAsync();
-        getPageAsync.execute(("1426_год_до_н._э."));
+        int startDate = 1935;//значения из Preference
+        int finishDate = 1936;//значения из Preference
+
+        Calendar thatDay = Calendar.getInstance();
+        if(true) {//изменение дат
+            SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+            Cursor cursor = db.query("Page", new String[]{"lastUpdate"}, "year = ?",
+                    new String[]{Integer.toString(startDate)}, null, null, null);
+
+            if(cursor != null){
+                if(cursor.moveToFirst()){
+                    do{
+                        String str = "";
+                        for(String cn : cursor.getColumnNames()){
+                            str = cursor.getString(cursor.getColumnIndex(cn));
+                        }
+                        Log.d(LOG_TAG, str);
+                        try {
+                            Date date = dateFormat.parse(str);
+                            thatDay.setTime(date);
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+                    } while (cursor.moveToNext());
+                }
+
+                Calendar today = Calendar.getInstance();
+                long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
+
+                if(diff / (60 * 60 * 1000) > 24) {
+                    //проверяем версию ? парсим и обновляем : берём из БД
+
+                    getPageAsync = new GetPageAsync();
+                    getPageAsync.execute(("1935_год"));
+                }
+            }
+
+            else {
+                //парсим и записываем в БД
+            }
+
+            cursor.close();
+
+
+
+            dbHelper.close();
+        }
     }
+
 
     private class GetPageAsync extends AsyncTask<String, String, String> {
 
@@ -177,6 +255,36 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             if(result == null || result.contains("#перенаправление"))
                 return;
             String str = result;
+        }
+    }
+
+
+
+
+    class DBHelper extends SQLiteOpenHelper{
+
+        public DBHelper(Context context){
+            super(context, "chronDB", null, 1);
+        }
+
+        @Override
+        public void onCreate(SQLiteDatabase db) {
+            Log.d(LOG_TAG, "--- onCreate ---");
+            db.execSQL("create table Page " +
+                    "(id integer primary key autoincrement, " +
+                    "year integer not null unique, " + "revisionID integer, " + "lastUpdate text)");
+
+            db.execSQL("create table Event " +
+                    "(id integer primary key autoincrement, " +
+                    "lat_dir text, " + "lon_dir text, " +
+                    "lat_deg integer, " + "lon_deg integer, " +
+                    "lat_min integer, " + "lon_min integer, " +
+                    "lat_sec integer, " + "lon_sec integer)");
+        }
+
+        @Override
+        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+
         }
     }
 }
