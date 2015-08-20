@@ -33,9 +33,7 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Objects;
+import java.util.*;
 //import kankan.wheel.widget;
 
 
@@ -48,6 +46,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private static final int SHOW_PREFERENCES = 1;
     Button mainButton;
 
+    int startDate;
+    int finishDate;
+
     Wiki wikipedia;
 
     DBHelper dbHelper;
@@ -56,8 +57,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     SimpleDateFormat dateFormat;
 
     GetPageAsync getPageAsync;
+    GetPageRevIDAsync getPageRevIDAsync;
 
-    String LOG_TAG = "INF:";
+    String LOG_TAG = "INF";
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -67,17 +69,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mainButton = (Button) this.findViewById(R.id.settingsButton);
         mainButton.setText("main");
 
+        Log.d(LOG_TAG, "--- onCreate main ---");
+
         dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
 
         wikipedia = new Wiki();
 
         dbHelper = new DBHelper(this);
         db = dbHelper.getWritableDatabase();
 
+        db.delete("Page", null, null);
         ContentValues cv = new ContentValues();
 
-        cv.put("year", 1935);
+        cv.put("year", 1714);
         cv.put("revisionID", 1);
+
         Date date = new Date();
         cv.put("lastUpdate", dateFormat.format(date));
 
@@ -179,8 +186,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         //getPageAsync = (GetPageAsync) getLastNonConfigurationInstance();
         //if(getPageAsync == null)
-        int startDate = 1935;//значения из Preference
-        int finishDate = 1936;//значения из Preference
+        startDate = 1714;//значения из Preference
+        finishDate = 1715;//значения из Preference
 
         Calendar thatDay = Calendar.getInstance();
         if(true) {//изменение дат
@@ -209,12 +216,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 Calendar today = Calendar.getInstance();
                 long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
 
-                if(diff / (60 * 60 * 1000) > 24) {
-                    //проверяем версию ? парсим и обновляем : берём из БД
+                //if(diff / (60 * 60 * 1000) > 24) {
+                    getPageRevIDAsync = new GetPageRevIDAsync();
+                    getPageRevIDAsync.execute(("1714_год"));
 
-                    getPageAsync = new GetPageAsync();
-                    getPageAsync.execute(("1935_год"));
-                }
+
+                //}
             }
 
             else {
@@ -254,12 +261,117 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         protected void onPostExecute(String result) {
             if(result == null || result.contains("#перенаправление"))
                 return;
-            String str = result;
+
+            ParseEvent(result);
+
+        }
+    }
+
+    private class GetPageRevIDAsync extends AsyncTask<String, String, Long> {
+
+        protected Long doInBackground(String... strs) {
+            int count = strs.length;
+            long revId = 0;
+            //long totalSize = 0;
+            for (int i = 0; i < count; i++) {
+                revId = wikipedia.getPageRevId("1714_год");
+            }
+            return revId;
+        }
+
+        //        protected void onProgressUpdate(Integer... progress) {
+//            setProgressPercent(progress[0]);
+//        }
+//
+        protected void onPostExecute(Long result) {
+            if(result == null || result == -1)
+                return;
+            long res = result;
+            SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+            Cursor cursor = db.query("Page", new String[]{"revisionID"}, "year = ?",
+                    new String[]{Integer.toString(startDate)}, null, null, null);
+
+            if(cursor != null){
+                if(cursor.moveToFirst()){
+                    do{
+                        long id = -1;
+                        for(String cn : cursor.getColumnNames()){
+                            id = cursor.getLong(cursor.getColumnIndex(cn));
+                        }
+                        Log.d(LOG_TAG, Long.toString(id));
+                        if(id != res){
+                            getPageAsync = new GetPageAsync();
+                            getPageAsync.execute(("1714_год"));
+                        }
+                        else{
+                            //берём из БД
+                        }
+                    } while (cursor.moveToNext());
+                }
+
+            }
         }
     }
 
 
+    private void ParseEvent(String events){
 
+        List<String> eventList = new ArrayList<String>();
+        String eventItem;
+        int start;
+        int finish;
+        int startEv;
+        int finishEv;
+        int startRef;
+        int finishRef;
+
+        start = events.indexOf("== События ==");
+        finish = events.indexOf("==", start + 14);
+
+        events = events.substring(start + 14, finish);
+
+        startEv = events.indexOf("*");
+        finishEv = events.indexOf("*", startEv + 1);
+
+        while(finishEv != -1) {//не последнее событие
+
+            if (finishEv - startEv != 1) {
+                eventItem = events.substring(startEv + 2, finishEv - 1);
+
+                startRef = eventItem.indexOf("<ref>");
+                if (startRef != -1) {
+                    finishRef = eventItem.indexOf("</ref>", startRef);
+                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+
+                    //цикл
+                }
+
+                dbHelper = new DBHelper(this);
+                db = dbHelper.getWritableDatabase();
+
+                ContentValues cv = new ContentValues();
+
+                cv.put("text", eventItem);
+                cv.put("lat_dir", "NaN");
+                cv.put("lon_dir", "NaN");
+                cv.put("lat_deg", 0);
+                cv.put("lon_deg", 0);
+                cv.put("lat_min", 0);
+                cv.put("lon_min", 0);
+                cv.put("lat_sec", 0);
+                cv.put("lon_sec", 0);
+
+                long id = db.insert("Event", null, cv);
+                dbHelper.close();
+            } else {//несколько событий
+
+            }
+
+            startEv = finishEv;
+            finishEv = events.indexOf("*", startEv + 1);//немного не то. **
+        }
+    }
 
     class DBHelper extends SQLiteOpenHelper{
 

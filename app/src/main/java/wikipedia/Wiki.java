@@ -76,7 +76,7 @@ public class Wiki implements Serializable{
         basegen.append(domain);
         basegen.append(scriptPath);
         StringBuilder apigen = new StringBuilder(basegen);
-        apigen.append("/api.php?format=json&rawcontinue=1&");
+        apigen.append("/api.php?format=json&");
 //        if (maxlag >= 0)
 //        {
 //            apigen.append("maxlag=");
@@ -266,9 +266,9 @@ public class Wiki implements Serializable{
         String IDString = "0";
 
         try {
-            String line = fetch(url.toString() + title, "getPageRevId");
+            String line = fetch(url.toString(), "getPageRevId");
 
-            int x = line.indexOf("\"revid\":") + 9;
+            int x = line.indexOf("\"revid\":") + 8;
             int y = line.indexOf(",", x);
 
             IDString = line.substring(x, y);
