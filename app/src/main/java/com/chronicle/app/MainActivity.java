@@ -48,6 +48,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     int startDate;
     int finishDate;
+    String eventItem;
 
     Wiki wikipedia;
 
@@ -82,7 +83,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         db.delete("Page", null, null);
         ContentValues cv = new ContentValues();
 
-        cv.put("year", 1714);
+        cv.put("year", 1914);
         cv.put("revisionID", 1);
 
         Date date = new Date();
@@ -186,8 +187,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         //getPageAsync = (GetPageAsync) getLastNonConfigurationInstance();
         //if(getPageAsync == null)
-        startDate = 1714;//значени€ из Preference
-        finishDate = 1715;//значени€ из Preference
+        startDate = 1914;//значени€ из Preference
+        finishDate = 1915;//значени€ из Preference
 
         Calendar thatDay = Calendar.getInstance();
         if(true) {//изменение дат
@@ -218,7 +219,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 //if(diff / (60 * 60 * 1000) > 24) {
                     getPageRevIDAsync = new GetPageRevIDAsync();
-                    getPageRevIDAsync.execute(("1714_год"));
+                    getPageRevIDAsync.execute(("1914_год"));
 
 
                 //}
@@ -274,7 +275,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             long revId = 0;
             //long totalSize = 0;
             for (int i = 0; i < count; i++) {
-                revId = wikipedia.getPageRevId("1714_год");
+                revId = wikipedia.getPageRevId("1914_год");
             }
             return revId;
         }
@@ -302,7 +303,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         Log.d(LOG_TAG, Long.toString(id));
                         if(id != res){
                             getPageAsync = new GetPageAsync();
-                            getPageAsync.execute(("1714_год"));
+                            getPageAsync.execute(("1914_год"));
                         }
                         else{
                             //берЄм из Ѕƒ
@@ -317,8 +318,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void ParseEvent(String events){
 
+        dbHelper = new DBHelper(this);
+
         List<String> eventList = new ArrayList<String>();
-        String eventItem;
+        String eventItem = null;
         int start;
         int finish;
         int startEv;
@@ -327,9 +330,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         int finishRef;
 
         start = events.indexOf("== —обыти€ ==");
-        finish = events.indexOf("==", start + 14);
-
-        events = events.substring(start + 14, finish);
+        finish = events.indexOf(" ==\n", start + 14);
+        if(finish != -1)
+            events = events.substring(start + 14, finish);
+        else events = events.substring(start + 14);
 
         startEv = events.indexOf("*");
         finishEv = events.indexOf("*", startEv + 1);
@@ -337,17 +341,112 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         while(finishEv != -1) {//не последнее событие
 
             if (finishEv - startEv != 1) {
-                eventItem = events.substring(startEv + 2, finishEv - 1);
 
-                startRef = eventItem.indexOf("<ref>");
-                if (startRef != -1) {
-                    finishRef = eventItem.indexOf("</ref>", startRef);
-                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+                if (finishEv - startEv > 17) {//ещЄ что-то кроме даты
+                    eventItem = events.substring(startEv + 2, finishEv - 1);
 
-                    //цикл
+                    int indxSlash = eventItem.indexOf("==");
+                    if( indxSlash != -1){
+                        eventItem = eventItem.substring(0, indxSlash - 2);
+                    }
+
+                    startRef = eventItem.indexOf("<ref");
+                    while (startRef != -1) {
+                        startRef = eventItem.indexOf("<ref>");
+                        if (startRef != -1) {
+                            finishRef = eventItem.indexOf("</ref>", startRef);
+                            eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+
+                            startRef = eventItem.indexOf("<ref");
+                        }
+                        else{
+                            startRef = eventItem.indexOf("<ref");
+                            finishRef = eventItem.indexOf("/>", startRef);
+                            if(finishRef != -1) {
+                                eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
+                            }
+                            else{
+                                finishRef = eventItem.indexOf("</ref>", startRef);
+                                eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+                            }
+                            startRef = eventItem.indexOf("<ref");
+                        }
+
+                    }
+
+                    while (eventItem.contains("[[")) {
+                        eventItem = TrimHooks(eventItem);
+                    }
+
+
+                    db = dbHelper.getWritableDatabase();
+
+                    ContentValues cv = new ContentValues();
+
+                    cv.put("text", eventItem);
+                    cv.put("lat_dir", "NaN");
+                    cv.put("lon_dir", "NaN");
+                    cv.put("lat_deg", 0);
+                    cv.put("lon_deg", 0);
+                    cv.put("lat_min", 0);
+                    cv.put("lon_min", 0);
+                    cv.put("lat_sec", 0);
+                    cv.put("lon_sec", 0);
+
+                    long id = db.insert("Event", null, cv);
+                }
+                else {
+                    eventItem = events.substring(startEv + 4, finishEv - 3) + " Ч ";
                 }
 
-                dbHelper = new DBHelper(this);
+            } else {//несколько событий
+
+                startEv++;
+                finishEv = events.indexOf("*", startEv + 1);
+
+                int indxDef= eventItem.indexOf(" Ч ");
+
+                if(indxDef != -1)
+                    eventItem = eventItem.substring(0, indxDef + 3) + //вз€ть дату из старого eventItem
+                            events.substring(startEv + 2, finishEv - 1);
+                else
+                    eventItem = eventItem + //вз€ть дату из старого eventItem
+                            events.substring(startEv + 2, finishEv - 1);
+
+                int indxSlash = eventItem.indexOf("==");
+                if( indxSlash != -1){
+                    eventItem = eventItem.substring(0, indxSlash - 2);
+                }
+
+                startRef = eventItem.indexOf("<ref");
+                while (startRef != -1) {
+                    startRef = eventItem.indexOf("<ref>");
+                    if (startRef != -1) {
+                        finishRef = eventItem.indexOf("</ref>", startRef);
+                        eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+
+                        startRef = eventItem.indexOf("<ref");
+                    }
+                    else{
+                        startRef = eventItem.indexOf("<ref");
+                        finishRef = eventItem.indexOf("/>", startRef);
+                        if(finishRef != -1) {
+                            eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
+                        }
+                        else{
+                            finishRef = eventItem.indexOf("</ref>", startRef);
+                            eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+                        }
+                        startRef = eventItem.indexOf("<ref");
+                    }
+
+                }
+
+                while (eventItem.contains("[[")) {
+                    eventItem = TrimHooks(eventItem);
+                }
+
+
                 db = dbHelper.getWritableDatabase();
 
                 ContentValues cv = new ContentValues();
@@ -363,14 +462,40 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 cv.put("lon_sec", 0);
 
                 long id = db.insert("Event", null, cv);
-                dbHelper.close();
-            } else {//несколько событий
-
             }
 
             startEv = finishEv;
-            finishEv = events.indexOf("*", startEv + 1);//немного не то. **
+            finishEv = events.indexOf("*", startEv + 1);
         }
+        dbHelper.close();
+    }
+
+    private String TrimHooks(String evnt){
+
+        //int startToNext = start;
+
+        int startEv = evnt.indexOf("[[");
+        if(startEv != -1){
+            int finishEv = evnt.indexOf("]]", startEv + 2);
+            //startToNext =+ 4;
+
+            String inHooks = evnt.substring(startEv + 2, finishEv);
+            int separ = inHooks.indexOf("|");
+            if(separ != -1){
+                //startToNext += inHooks.length() - separ - 1;
+                inHooks = inHooks.substring(separ + 1, inHooks.length());
+            }
+
+            evnt = evnt.substring(0, startEv) + inHooks + evnt.substring(finishEv + 2, evnt.length());
+
+            //TrimHooks(evnt);
+            return evnt;
+        }
+//        else {
+//            String hi = evnt;
+//            return;
+//        }
+        return "";
     }
 
     class DBHelper extends SQLiteOpenHelper{
