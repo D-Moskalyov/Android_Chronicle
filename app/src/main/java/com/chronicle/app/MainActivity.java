@@ -27,7 +27,10 @@ import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.internal.StreetViewLifecycleDelegate;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.web.client.RestTemplate;
 import wikipedia.Wiki;
+import org.apache.lucene.morphology.*;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -350,6 +353,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         eventItem = eventItem.substring(0, indxSlash - 2);
                     }
 
+
                     startRef = eventItem.indexOf("<ref");
                     while (startRef != -1) {
                         startRef = eventItem.indexOf("<ref>");
@@ -460,6 +464,27 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 cv.put("lon_min", 0);
                 cv.put("lat_sec", 0);
                 cv.put("lon_sec", 0);
+
+
+
+
+
+
+                org.apache.lucene.morphology.russian.RussianAnalyzer russianAnalyzer;
+                LuceneMorphology luceneMorph;
+
+
+                String url = "https://ajax.googleapis.com/ajax/" +
+                        "services/search/web?v=1.0&q={query}";
+                RestTemplate restTemplate = new RestTemplate();
+                restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
+                String result = restTemplate.getForObject(url, String.class, "Android");
+
+
+
+
+
+
 
                 long id = db.insert("Event", null, cv);
             }

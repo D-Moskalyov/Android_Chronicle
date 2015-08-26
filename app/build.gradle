@@ -10,6 +10,12 @@ apply plugin: 'com.android.application'
 
 repositories {
     jcenter()
+//    maven {
+//        url 'http://repo.spring.io/milestone'
+//    }
+//    svn{
+//        url 'http://russianmorphology.googlecode.com/svn/repo/releases'
+//    }
 }
 
 android {
@@ -41,9 +47,23 @@ android {
 
 dependencies {
     compile 'com.google.android.gms:play-services-maps:7.5.0'
+    compile 'org.springframework.android:spring-android-rest-template:2.0.0.M1'
+    compile 'org.apache.lucene.morphology:russian:1.0'
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:22.2.1'
-    compile project (':wheel')
+    compile project(':wheel')
+}
+repositories {
+    maven {
+        url 'http://repo.spring.io/milestone'
+    }
+    maven {
+        url 'http://russianmorphology.googlecode.com/svn/repo/releases'
+    }
+
+//    svn{
+//        url 'http://russianmorphology.googlecode.com/svn/repo/releases'
+//    }
 }
 
 
