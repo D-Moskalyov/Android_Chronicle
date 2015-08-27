@@ -10,12 +10,6 @@ apply plugin: 'com.android.application'
 
 repositories {
     jcenter()
-//    maven {
-//        url 'http://repo.spring.io/milestone'
-//    }
-//    svn{
-//        url 'http://russianmorphology.googlecode.com/svn/repo/releases'
-//    }
 }
 
 android {
@@ -43,6 +37,18 @@ android {
     }
     productFlavors {
     }
+    packagingOptions {
+        exclude 'META-INF/DEPENDENCIES.txt'
+        exclude 'META-INF/DEPENDENCIES'
+        exclude 'META-INF/dependencies.txt'
+        exclude 'META-INF/LICENSE.txt'
+        exclude 'META-INF/LICENSE'
+        exclude 'META-INF/license.txt'
+        exclude 'META-INF/LGPL2.1'
+        exclude 'META-INF/NOTICE.txt'
+        exclude 'META-INF/NOTICE'
+        exclude 'META-INF/notice.txt'
+    }
 }
 
 dependencies {
@@ -60,10 +66,6 @@ repositories {
     maven {
         url 'http://russianmorphology.googlecode.com/svn/repo/releases'
     }
-
-//    svn{
-//        url 'http://russianmorphology.googlecode.com/svn/repo/releases'
-//    }
 }
 
 

@@ -11,6 +11,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.opengl.EGLSurface;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Environment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
@@ -27,6 +28,10 @@ import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.internal.StreetViewLifecycleDelegate;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.morphology.russian.RussianAnalyzer;
+import org.apache.lucene.morphology.russian.RussianLetterDecoderEncoder;
+import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.web.client.RestTemplate;
 import wikipedia.Wiki;
@@ -34,6 +39,7 @@ import org.apache.lucene.morphology.*;
 
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.nio.channels.FileChannel;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -41,6 +47,7 @@ import java.util.*;
 
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
+
 
     //SupportMapFragment mapFragment;
     //GoogleMap map;
@@ -72,6 +79,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         setContentView(R.layout.main_layout);
         mainButton = (Button) this.findViewById(R.id.settingsButton);
         mainButton.setText("main");
+
+        LuceneMorphology luceneMorph = null;
+        try {
+            luceneMorph = new RussianLuceneMorphology();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            List<String> wordBaseForms = luceneMorph.getMorphInfo("what");
+        }catch (WrongCharaterException e){
+            e.printStackTrace();
+        }
 
         Log.d(LOG_TAG, "--- onCreate main ---");
 
@@ -467,24 +486,28 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
+                //RussianAnalyzer russianAnalyzer = new RussianAnalyzer();
+
+                //LuceneMorphology luceneMorph = new RussianLuceneMorphology();
+//                TokenStream tokenStream = analyzer.tokenStream(fieldName, luceneMorph);
+//                OffsetAttribute offsetAttribute = tokenStream.addAttribute(OffsetAttribute.class);
+//                CharTermAttribute charTermAttribute = tokenStream.addAttribute(CharTermAttribute.class);
+//
+//                tokenStream.reset();
+//                while (tokenStream.incrementToken()) {
+//                    int startOffset = offsetAttribute.startOffset();
+//                    int endOffset = offsetAttribute.endOffset();
+//                    String term = charTermAttribute.toString();
+//                }
 
 
 
-                org.apache.lucene.morphology.russian.RussianAnalyzer russianAnalyzer;
-                LuceneMorphology luceneMorph;
 
-
-                String url = "https://ajax.googleapis.com/ajax/" +
-                        "services/search/web?v=1.0&q={query}";
-                RestTemplate restTemplate = new RestTemplate();
-                restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
-                String result = restTemplate.getForObject(url, String.class, "Android");
-
-
-
-
-
-
+//                String url = "https://ajax.googleapis.com/ajax/" +
+//                        "services/search/web?v=1.0&q={query}";
+//                RestTemplate restTemplate = new RestTemplate();
+//                restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
+//                String result = restTemplate.getForObject(url, String.class, "Android");
 
                 long id = db.insert("Event", null, cv);
             }
@@ -549,4 +572,25 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         }
     }
+
+//    private void exportDB(){
+//        File sd = Environment.getExternalStorageDirectory();
+//        File data = Environment.getDataDirectory();
+//        FileChannel source=null;
+//        FileChannel destination=null;
+//        String currentDBPath = "/data/"+ "com.authorwjf.sqliteexport" +"/databases/"+SAMPLE_DB_NAME;
+//        String backupDBPath = SAMPLE_DB_NAME;
+//        File currentDB = new File(data, currentDBPath);
+//        File backupDB = new File(sd, backupDBPath);
+//        try {
+//            source = new FileInputStream(currentDB).getChannel();
+//            destination = new FileOutputStream(backupDB).getChannel();
+//            destination.transferFrom(source, 0, source.size());
+//            source.close();
+//            destination.close();
+//            Toast.makeText(this, "DB Exported!", Toast.LENGTH_LONG).show();
+//        } catch(IOException e) {
+//            e.printStackTrace();
+//        }
+//    }
 }

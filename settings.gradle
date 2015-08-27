@@ -1,2 +1,3 @@
+//include ':app'
 include ':app', ':wheel'
 project(':wheel').projectDir = new File('app/libs/wheel')
