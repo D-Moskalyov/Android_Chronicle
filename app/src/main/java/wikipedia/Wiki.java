@@ -279,6 +279,25 @@ public class Wiki implements Serializable{
         return Long.parseLong(IDString);
     }
 
+    public boolean isContainCoordTemplate(String title){
+        StringBuilder url = new StringBuilder(query);
+        url.append("prop=templates&tltemplates=Template:Coord&titles=");
+        url.append(title);
+
+        try {
+            String line = fetch(url.toString(), "isContainCoordTemplate");
+
+            if(line.contains("Coord")){
+                return true;
+            }
+            return false;
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return false;
+    }
+
     protected URLConnection makeConnection(String url) throws IOException
     {
         return new URL(url).openConnection();

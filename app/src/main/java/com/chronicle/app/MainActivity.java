@@ -8,42 +8,29 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.opengl.EGLSurface;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.AsyncTask;
-import android.os.Build;
-import android.os.Environment;
-import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.os.Bundle;
-import android.view.Window;
 import android.widget.Button;
 import android.widget.Toast;
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.maps.*;
-import com.google.android.gms.maps.internal.StreetViewLifecycleDelegate;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.morphology.russian.RussianAnalyzer;
-import org.apache.lucene.morphology.russian.RussianLetterDecoderEncoder;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
-import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.web.client.RestTemplate;
 import wikipedia.Wiki;
 import org.apache.lucene.morphology.*;
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.channels.FileChannel;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-//import kankan.wheel.widget;
 
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -59,6 +46,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     int startDate;
     int finishDate;
     String eventItem;
+    List<String> wordBaseForms;
 
     Wiki wikipedia;
 
@@ -69,6 +57,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     GetPageAsync getPageAsync;
     GetPageRevIDAsync getPageRevIDAsync;
+    GetPageTemplatesAsync getPageTemplatesAsync;
+    LocationManager locationManager;
 
     String LOG_TAG = "INF";
 
@@ -76,9 +66,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         //settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
+        wikipedia = new Wiki();
         setContentView(R.layout.main_layout);
         mainButton = (Button) this.findViewById(R.id.settingsButton);
         mainButton.setText("main");
+
+        locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
 
         LuceneMorphology luceneMorph = null;
         try {
@@ -86,18 +79,66 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         } catch (IOException e) {
             e.printStackTrace();
         }
+        String _text = "жмеринка";
+        _text = _text.toLowerCase();
         try {
-            List<String> wordBaseForms = luceneMorph.getMorphInfo("what");
+            wordBaseForms = luceneMorph.getMorphInfo(_text);
         }catch (WrongCharaterException e){
             e.printStackTrace();
         }
+        if(wordBaseForms != null) {
+            int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
+            String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
 
+
+
+//            {
+//            Charset cset = Charset.forName("windows-1251");
+//            ByteBuffer buf = cset.encode(partOfSpeach);
+//            byte[] b = buf.array();
+//            String str = new String(b);
+//            byte[] bt = null;
+//            try {
+//                bt = partOfSpeach.getBytes("UTF-8");
+//            } catch (UnsupportedEncodingException e) {
+//                e.printStackTrace();
+//            }
+//            String fromBT = new String(bt.toString());
+//            //String partOfSpeach1251= new String(partOfSpeach.getBytes("UTF-8"), "windows-1251");
+//            String san = "c";
+//            cset = Charset.forName("windows-1251"); buf = cset.encode(san); b = buf.array(); str = new String(b);
+//            String sAN = "C";
+//            cset = Charset.forName("windows-1251"); buf = cset.encode(sAN); b = buf.array(); str = new String(b);
+//            String sru = "с";
+//            cset = Charset.forName("windows-1251"); buf = cset.encode(sru); b = buf.array(); str = new String(b);
+//            String sRU = "С";
+//            try {
+//                bt = sRU.getBytes("windows-1251");
+//            } catch (UnsupportedEncodingException e) {
+//                e.printStackTrace();
+//            }
+//            cset = Charset.forName("windows-1251"); buf = cset.encode(sRU); b = buf.array(); str = new String(b);
+//            String suk = "с";
+//            cset = Charset.forName("windows-1251"); buf = cset.encode(suk); b = buf.array(); str = new String(b);
+//            String sUK = "С";
+//            cset = Charset.forName("windows-1251"); buf = cset.encode(sUK); b = buf.array(); str = new String(b);
+//            if(partOfSpeach == sRU){
+//                String f = "";
+//            }
+//            }
+
+
+
+            String lex = wordBaseForms.get(0).substring(0, pos - 3);
+
+            getPageTemplatesAsync = new GetPageTemplatesAsync();
+            getPageTemplatesAsync.execute(lex);
+
+        }
         Log.d(LOG_TAG, "--- onCreate main ---");
 
         dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
-
-        wikipedia = new Wiki();
 
         dbHelper = new DBHelper(this);
         db = dbHelper.getWritableDatabase();
@@ -113,15 +154,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         long id = db.insert("Page", null, cv);
         dbHelper.close();
-
-        //Fragment.setHasOptionsMenu(true);
-
-//        mapFragment = (SupportMapFragment)getSupportFragmentManager().findFragmentById(R.id.map);
-//        mapFragment.getMapAsync(this);
-
-//        MapFragment mapFragment = (MapFragment) getFragmentManager()
-//                .findFragmentById(R.id.map);
-//        mapFragment.getMapAsync(this);
 
     }
 
@@ -149,25 +181,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return true;
     }
 
-//    public void onSetTen(View view){
-//        SharedPreferences.Editor editor = settings.edit();
-//        editor.putInt("value", 10);
-//
-//        editor.commit();
-//    }
-//
-//    public void onSetFive(View view){
-//        SharedPreferences.Editor editor = settings.edit();
-//        editor.putInt("value", 5);
-//
-//        editor.commit();
-//    }
-//
-//    public void onShowValue(View view){
-//        int value = settings.getInt("value", 0);
-//        Context context = getApplicationContext();
-//        Toast.makeText(context, String.valueOf(value), Toast.LENGTH_SHORT).show();
-//    }
 
     public void onClickPreferences(View view){
 //        Class c = Build.VERSION.SDK_INT <Build.VERSION_CODES.HONEYCOMB ?
@@ -189,26 +202,20 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-//    public Objects onRetainNonConfigurationInstance(){
-//        return getPageAsync;
-//    }
-
     @Override
     protected void onResume() {
         super.onResume();
+        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+                1000 * 10, 100, locationListener);
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+                1000 * 10, 100, locationListener);
+        CheckEnable();
+
         //get getSharedPreferences year
         settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
         String intervalString = settings.getString("intervalString", "Set Interval");
         mainButton.setText(intervalString);
 
-//        try {
-//            wikipedia.getPageText("1925_год");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-        //getPageAsync = (GetPageAsync) getLastNonConfigurationInstance();
-        //if(getPageAsync == null)
         startDate = 1914;//значения из Preference
         finishDate = 1915;//значения из Preference
 
@@ -259,6 +266,66 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+        locationManager.removeUpdates(locationListener);
+    }
+
+
+
+    private LocationListener locationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(Location location) {
+            ShowLocation(location);
+        }
+
+        @Override
+        public void onStatusChanged(String provider, int status, Bundle extras) {
+            if(provider.equals(locationManager.GPS_PROVIDER)){
+                //реакция на изменение
+            }
+            else if(provider.equals(locationManager.NETWORK_PROVIDER)){
+                //реакция на изменение
+            }
+        }
+
+        @Override
+        public void onProviderEnabled(String provider) {
+            CheckEnable();
+            ShowLocation(locationManager.getLastKnownLocation(provider));
+        }
+
+        @Override
+        public void onProviderDisabled(String provider) {
+            CheckEnable();
+        }
+    };
+
+    private void ShowLocation(Location location){
+        if(location == null)
+            return;
+        if(location.getProvider().equals(locationManager.GPS_PROVIDER)){
+            //реакция на данные
+        }
+        else if(location.getProvider().equals(locationManager.NETWORK_PROVIDER)){
+            //реакция на данные
+        }
+
+    }
+
+    private String FormatLocation(Location location){
+        if(location == null)
+            return "";
+        return String.format(Double.toString(location.getLatitude()), Double.toString(location.getLongitude())
+                , new Date(location.getTime()).toString());
+    }
+
+    private void CheckEnable(){
+
+    }
+
+
 
     private class GetPageAsync extends AsyncTask<String, String, String> {
 
@@ -305,7 +372,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         //        protected void onProgressUpdate(Integer... progress) {
 //            setProgressPercent(progress[0]);
 //        }
-//
+
         protected void onPostExecute(Long result) {
             if(result == null || result == -1)
                 return;
@@ -337,6 +404,68 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private class GetPageTemplatesAsync extends AsyncTask<String, String, String> {
+
+        protected String doInBackground(String... strs) {
+            if (wikipedia.isContainCoordTemplate(strs[0])){
+                return strs[0];
+            }
+            else
+                return "";
+        }
+
+        protected void onPostExecute(String result) {
+            if(result != "")
+                try {
+                    Object[] coord = ParseCoord(wikipedia.getPageText(result));
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+        }
+    }
+
+
+
+    private Object[] ParseCoord(String fullText){
+
+        Object[] coord = new Object[8];
+
+        int lat_dir_indx; int lat_deg_indx; int lat_min_indx; int lat_sec_indx;
+        int lon_dir_indx; int lon_deg_indx; int lon_min_indx; int lon_sec_indx;
+
+        int lat_dir_indx_end; int lat_deg_indx_end; int lat_min_indx_end; int lat_sec_indx_end;
+        int lon_dir_indx_end; int lon_deg_indx_end; int lon_min_indx_end; int lon_sec_indx_end;
+
+        lat_dir_indx = fullText.indexOf("lat_dir");
+        lat_deg_indx = fullText.indexOf("lat_deg");
+        lat_min_indx = fullText.indexOf("lat_min");
+        lat_sec_indx = fullText.indexOf("lat_sec");
+        lon_dir_indx = fullText.indexOf("lon_dir");
+        lon_deg_indx = fullText.indexOf("lon_deg");
+        lon_min_indx = fullText.indexOf("lon_min");
+        lon_sec_indx = fullText.indexOf("lon_sec");
+
+        lat_dir_indx_end = fullText.indexOf(" ", lat_dir_indx + 10);
+        lat_deg_indx_end = fullText.indexOf(" ", lat_deg_indx + 10);
+        lat_min_indx_end = fullText.indexOf(" ", lat_min_indx + 10);
+        lat_sec_indx_end = fullText.indexOf(" ", lat_sec_indx + 10);
+        lon_dir_indx_end = fullText.indexOf(" ", lon_dir_indx + 10);
+        lon_deg_indx_end = fullText.indexOf(" ", lon_deg_indx + 10);
+        lon_min_indx_end = fullText.indexOf(" ", lon_min_indx + 10);
+        lon_sec_indx_end = fullText.indexOf(" ", lon_sec_indx + 10);
+
+        coord[0] = fullText.substring(lat_dir_indx, lat_dir_indx_end);
+        coord[1] = fullText.substring(lat_deg_indx, lat_deg_indx_end);
+        coord[2] = fullText.substring(lat_min_indx, lat_min_indx_end);
+        coord[3] = fullText.substring(lat_sec_indx, lat_sec_indx_end);
+        coord[4] = fullText.substring(lon_dir_indx, lon_dir_indx_end);
+        coord[5] = fullText.substring(lon_deg_indx, lon_deg_indx_end);
+        coord[6] = fullText.substring(lon_min_indx, lon_min_indx_end);
+        coord[7] = fullText.substring(lon_sec_indx, lon_sec_indx_end);
+
+        return coord;
+    }
 
     private void ParseEvent(String events){
 
@@ -485,30 +614,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 cv.put("lon_sec", 0);
 
 
-
-                //RussianAnalyzer russianAnalyzer = new RussianAnalyzer();
-
-                //LuceneMorphology luceneMorph = new RussianLuceneMorphology();
-//                TokenStream tokenStream = analyzer.tokenStream(fieldName, luceneMorph);
-//                OffsetAttribute offsetAttribute = tokenStream.addAttribute(OffsetAttribute.class);
-//                CharTermAttribute charTermAttribute = tokenStream.addAttribute(CharTermAttribute.class);
-//
-//                tokenStream.reset();
-//                while (tokenStream.incrementToken()) {
-//                    int startOffset = offsetAttribute.startOffset();
-//                    int endOffset = offsetAttribute.endOffset();
-//                    String term = charTermAttribute.toString();
-//                }
-
-
-
-
-//                String url = "https://ajax.googleapis.com/ajax/" +
-//                        "services/search/web?v=1.0&q={query}";
-//                RestTemplate restTemplate = new RestTemplate();
-//                restTemplate.getMessageConverters().add(new StringHttpMessageConverter());
-//                String result = restTemplate.getForObject(url, String.class, "Android");
-
                 long id = db.insert("Event", null, cv);
             }
 
@@ -545,6 +650,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        }
         return "";
     }
+
+
 
     class DBHelper extends SQLiteOpenHelper{
 
