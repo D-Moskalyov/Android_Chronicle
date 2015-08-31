@@ -22,22 +22,26 @@ import android.widget.Button;
 import android.widget.Toast;
 import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import wikipedia.Wiki;
 import org.apache.lucene.morphology.*;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-
+//implements OnMapReadyCallback
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
 
 
-    //SupportMapFragment mapFragment;
-    //GoogleMap map;
+    MapFragment mapFragment = null;
+    GoogleMap map = null;
+    Marker marker = null;
+
     //final String TAG = "myLogs";
     SharedPreferences settings;
     private static final int SHOW_PREFERENCES = 1;
@@ -64,10 +68,23 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.main_layout);
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         //settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
+
+        mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
+
+        map = mapFragment.getMap();
+        if(map == null){
+            finish();
+            return;
+        }
+
+        InitMap();
+        onMapReady(map);
+
         wikipedia = new Wiki();
-        setContentView(R.layout.main_layout);
+
         mainButton = (Button) this.findViewById(R.id.settingsButton);
         mainButton.setText("main");
 
@@ -79,7 +96,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         } catch (IOException e) {
             e.printStackTrace();
         }
-        String _text = "жмеринка";
+        String _text = "Бостон";
+
         _text = _text.toLowerCase();
         try {
             wordBaseForms = luceneMorph.getMorphInfo(_text);
@@ -132,28 +150,38 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             String lex = wordBaseForms.get(0).substring(0, pos - 3);
 
             getPageTemplatesAsync = new GetPageTemplatesAsync();
-            getPageTemplatesAsync.execute(lex);
+            String utf8lex = "";
+            try {
+                utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace();
+            }
+            getPageTemplatesAsync.execute(utf8lex);
 
         }
         Log.d(LOG_TAG, "--- onCreate main ---");
 
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+//        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//        dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+//
+//        dbHelper = new DBHelper(this);
+//        db = dbHelper.getWritableDatabase();
+//
+//        db.delete("Page", null, null);
+//        ContentValues cv = new ContentValues();
+//
+//        cv.put("year", 1914);
+//        cv.put("revisionID", 1);
+//
+//        Date date = new Date();
+//        cv.put("lastUpdate", dateFormat.format(date));
+//
+//        long id = db.insert("Page", null, cv);
+//        dbHelper.close();
 
-        dbHelper = new DBHelper(this);
-        db = dbHelper.getWritableDatabase();
+    }
 
-        db.delete("Page", null, null);
-        ContentValues cv = new ContentValues();
-
-        cv.put("year", 1914);
-        cv.put("revisionID", 1);
-
-        Date date = new Date();
-        cv.put("lastUpdate", dateFormat.format(date));
-
-        long id = db.insert("Page", null, cv);
-        dbHelper.close();
+    private void InitMap(){
 
     }
 
@@ -205,65 +233,65 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onResume() {
         super.onResume();
-        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-                1000 * 10, 100, locationListener);
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-                1000 * 10, 100, locationListener);
-        CheckEnable();
-
-        //get getSharedPreferences year
-        settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
-        String intervalString = settings.getString("intervalString", "Set Interval");
-        mainButton.setText(intervalString);
-
-        startDate = 1914;//значения из Preference
-        finishDate = 1915;//значения из Preference
-
-        Calendar thatDay = Calendar.getInstance();
-        if(true) {//изменение дат
-            SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-            Cursor cursor = db.query("Page", new String[]{"lastUpdate"}, "year = ?",
-                    new String[]{Integer.toString(startDate)}, null, null, null);
-
-            if(cursor != null){
-                if(cursor.moveToFirst()){
-                    do{
-                        String str = "";
-                        for(String cn : cursor.getColumnNames()){
-                            str = cursor.getString(cursor.getColumnIndex(cn));
-                        }
-                        Log.d(LOG_TAG, str);
-                        try {
-                            Date date = dateFormat.parse(str);
-                            thatDay.setTime(date);
-                        } catch (ParseException e) {
-                            e.printStackTrace();
-                        }
-                    } while (cursor.moveToNext());
-                }
-
-                Calendar today = Calendar.getInstance();
-                long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
-
-                //if(diff / (60 * 60 * 1000) > 24) {
-                    getPageRevIDAsync = new GetPageRevIDAsync();
-                    getPageRevIDAsync.execute(("1914_год"));
-
-
-                //}
-            }
-
-            else {
-                //парсим и записываем в БД
-            }
-
-            cursor.close();
-
-
-
-            dbHelper.close();
-        }
+//        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
+//                1000 * 10, 100, locationListener);
+//        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
+//                1000 * 10, 100, locationListener);
+//        CheckEnable();
+//
+//        //get getSharedPreferences year
+//        settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
+//        String intervalString = settings.getString("intervalString", "Set Interval");
+//        mainButton.setText(intervalString);
+//
+//        startDate = 1914;//значения из Preference
+//        finishDate = 1915;//значения из Preference
+//
+//        Calendar thatDay = Calendar.getInstance();
+//        if(true) {//изменение дат
+//            SQLiteDatabase db = dbHelper.getWritableDatabase();
+//
+//            Cursor cursor = db.query("Page", new String[]{"lastUpdate"}, "year = ?",
+//                    new String[]{Integer.toString(startDate)}, null, null, null);
+//
+//            if(cursor != null){
+//                if(cursor.moveToFirst()){
+//                    do{
+//                        String str = "";
+//                        for(String cn : cursor.getColumnNames()){
+//                            str = cursor.getString(cursor.getColumnIndex(cn));
+//                        }
+//                        Log.d(LOG_TAG, str);
+//                        try {
+//                            Date date = dateFormat.parse(str);
+//                            thatDay.setTime(date);
+//                        } catch (ParseException e) {
+//                            e.printStackTrace();
+//                        }
+//                    } while (cursor.moveToNext());
+//                }
+//
+//                Calendar today = Calendar.getInstance();
+//                long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
+//
+//                //if(diff / (60 * 60 * 1000) > 24) {
+//                    getPageRevIDAsync = new GetPageRevIDAsync();
+//                    getPageRevIDAsync.execute(("1914_год"));
+//
+//
+//                //}
+//            }
+//
+//            else {
+//                //парсим и записываем в БД
+//            }
+//
+//            cursor.close();
+//
+//
+//
+//            dbHelper.close();
+//        }
     }
 
     @Override
@@ -415,13 +443,43 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         protected void onPostExecute(String result) {
-            if(result != "")
-                try {
-                    Object[] coord = ParseCoord(wikipedia.getPageText(result));
+            if(result != "") {
+                //try {
+                    GetPageForCoordAsync getPageForCoordAsync = new GetPageForCoordAsync();
+                    getPageForCoordAsync.execute(result);
+                    //Object[] coord = ParseCoord(wikipedia.getPageText(result));
 
-                } catch (IOException e) {
-                    e.printStackTrace();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+            }
+        }
+
+        private class GetPageForCoordAsync extends AsyncTask<String, String, String> {
+
+            protected String doInBackground(String... strs) {
+                int count = strs.length;
+                String page = null;
+                //long totalSize = 0;
+                for (int i = 0; i < count; i++) {
+                    try {
+                        page = wikipedia.getPageText(strs[i]);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        return page;
+                    }
                 }
+                return page;
+            }
+
+            //        protected void onProgressUpdate(Integer... progress) {
+//            setProgressPercent(progress[0]);
+//        }
+//
+            protected void onPostExecute(String result) {
+                Object[] coord = ParseCoord(result);
+
+            }
         }
     }
 
@@ -446,23 +504,36 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         lon_min_indx = fullText.indexOf("lon_min");
         lon_sec_indx = fullText.indexOf("lon_sec");
 
-        lat_dir_indx_end = fullText.indexOf(" ", lat_dir_indx + 10);
-        lat_deg_indx_end = fullText.indexOf(" ", lat_deg_indx + 10);
-        lat_min_indx_end = fullText.indexOf(" ", lat_min_indx + 10);
-        lat_sec_indx_end = fullText.indexOf(" ", lat_sec_indx + 10);
-        lon_dir_indx_end = fullText.indexOf(" ", lon_dir_indx + 10);
-        lon_deg_indx_end = fullText.indexOf(" ", lon_deg_indx + 10);
-        lon_min_indx_end = fullText.indexOf(" ", lon_min_indx + 10);
-        lon_sec_indx_end = fullText.indexOf(" ", lon_sec_indx + 10);
+        lat_dir_indx_end = fullText.indexOf("|", lat_dir_indx + 9);
+        lat_deg_indx_end = fullText.indexOf("|", lat_deg_indx + 9);
+        lat_min_indx_end = fullText.indexOf("|", lat_min_indx + 9);
+        lat_sec_indx_end = fullText.indexOf("|", lat_sec_indx + 9);
+        lon_dir_indx_end = fullText.indexOf("|", lon_dir_indx + 9);
+        lon_deg_indx_end = fullText.indexOf("|", lon_deg_indx + 9);
+        lon_min_indx_end = fullText.indexOf("|", lon_min_indx + 9);
+        lon_sec_indx_end = fullText.indexOf("|", lon_sec_indx + 9);
 
-        coord[0] = fullText.substring(lat_dir_indx, lat_dir_indx_end);
+        if(lat_dir_indx != -1)
+            coord[0] = fullText.substring(lat_dir_indx, lat_dir_indx_end);
+        else coord[0] = "N";
         coord[1] = fullText.substring(lat_deg_indx, lat_deg_indx_end);
         coord[2] = fullText.substring(lat_min_indx, lat_min_indx_end);
         coord[3] = fullText.substring(lat_sec_indx, lat_sec_indx_end);
-        coord[4] = fullText.substring(lon_dir_indx, lon_dir_indx_end);
+        if(lon_dir_indx != -1)
+            coord[4] = fullText.substring(lon_dir_indx, lon_dir_indx_end);
+        else coord[4] = "E";
         coord[5] = fullText.substring(lon_deg_indx, lon_deg_indx_end);
         coord[6] = fullText.substring(lon_min_indx, lon_min_indx_end);
         coord[7] = fullText.substring(lon_sec_indx, lon_sec_indx_end);
+
+        coord[0] = ((String)(coord[0])).trim();
+        coord[1] = ((String)(coord[1])).trim();
+        coord[2] = ((String)(coord[2])).trim();
+        coord[3] = ((String)(coord[3])).trim();
+        coord[4] = ((String)(coord[4])).trim();
+        coord[5] = ((String)(coord[5])).trim();
+        coord[6] = ((String)(coord[6])).trim();
+        coord[7] = ((String)(coord[7])).trim();
 
         return coord;
     }
