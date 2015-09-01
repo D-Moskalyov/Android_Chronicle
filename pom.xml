@@ -21,6 +21,12 @@
                      <artifactId>russian</artifactId>
                      <version>1.0</version>
               </dependency>
+              <dependency>
+                     <groupId>com.google.maps.android</groupId>
+                     <artifactId>android-maps-utils-apklib</artifactId>
+                     <version>0.4</version>
+                     <type>apklib</type>
+              </dependency>
        </dependencies>
 
 

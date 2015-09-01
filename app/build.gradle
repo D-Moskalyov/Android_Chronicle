@@ -53,10 +53,13 @@ android {
 
 dependencies {
     compile 'com.google.android.gms:play-services-maps:7.5.0'
+    //compile 'com.google.maps.android:android-maps-utils:0.4+'
     compile 'org.springframework.android:spring-android-rest-template:2.0.0.M1'
     compile 'org.apache.lucene.morphology:russian:1.0'
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.android.support:appcompat-v7:22.2.1'
+    //compile project(':android-maps-utils')
+    compile project(':library')
     compile project(':wheel')
 }
 repositories {

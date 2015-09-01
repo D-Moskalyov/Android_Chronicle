@@ -4,6 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Chronicle.iml" filepath="$PROJECT_DIR$/Chronicle.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/libs/android-maps-utils/demo/demo.iml" filepath="$PROJECT_DIR$/app/libs/android-maps-utils/demo/demo.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/libs/android-maps-utils/library/library.iml" filepath="$PROJECT_DIR$/app/libs/android-maps-utils/library/library.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/libs/android-maps-utils/library/tests/tests.iml" filepath="$PROJECT_DIR$/app/libs/android-maps-utils/library/tests/tests.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/libs/wheel/wheel.iml" filepath="$PROJECT_DIR$/app/libs/wheel/wheel.iml" />
     </modules>
   </component>

@@ -2,5 +2,6 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="E:\STEP\Android\Chronicle\app\libs\android-maps-utils" vcs="Git" />
   </component>
 </project>

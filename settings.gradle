@@ -1,3 +1,6 @@
 //include ':app'
-include ':app', ':wheel'
+include ':app', ':wheel', ':library'
+//include ':app', ':wheel', ':android-maps-utils'
 project(':wheel').projectDir = new File('app/libs/wheel')
+//project(':android-maps-utils').projectDir = new File('app/libs/android-maps-utils')
+project(':library').projectDir = new File('app/libs/android-maps-utils/library')
