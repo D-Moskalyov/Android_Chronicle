@@ -17,7 +17,7 @@ import java.util.Objects;
 public class SettingActivity extends Activity {
 
     private boolean scrolling = false;
-    private int indexOfFirstCenturyAC = 20;
+    private int indexOfFirstCenturyAC = R.string.firstCenturyAC - 1;
     SharedPreferences mySharedPreferences;
 
     WheelView centuryStart = null;
@@ -229,8 +229,10 @@ public class SettingActivity extends Activity {
             }
         });
         yearStart.addChangingListener(new OnWheelChangedListener() {
+
             @Override
             public void onChanged(WheelView wheel, int oldValue, int newValue) {
+
                 Correction(centuryStart, centuryFinish, yearStart, yearFinish);
                 if (!scrolling) {
                     SharedPreferences.Editor editor = mySharedPreferences.edit();

@@ -24,6 +24,7 @@ import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.clustering.ClusterManager;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import wikipedia.Wiki;
 import org.apache.lucene.morphology.*;
@@ -51,6 +52,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     int finishDate;
     String eventItem;
     List<String> wordBaseForms;
+    char noun = 'С';
+    private int firstCenturyAC = R.string.firstCenturyAC;
+    int centuryStart;
+    int centuryFinish;
+    int yearStart;
+    int yearFinish;
 
     Wiki wikipedia;
 
@@ -63,6 +70,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     GetPageRevIDAsync getPageRevIDAsync;
     GetPageTemplatesAsync getPageTemplatesAsync;
     LocationManager locationManager;
+    ClusterManager<Coordinate> mClusterManager;
 
     String LOG_TAG = "INF";
 
@@ -70,7 +78,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_layout);
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        //settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
+        settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
 
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
 
@@ -80,7 +88,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        InitMap();
+        InitClusterer();
         onMapReady(map);
 
         wikipedia = new Wiki();
@@ -89,6 +97,86 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mainButton.setText("main");
 
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
+
+
+        int centuryStart = settings.getInt("centStartIndx", 0);
+        int centuryFinish = settings.getInt("centFinishIndx", 0);
+        int yearStart = settings.getInt("yearStartIndx", 0);
+        int yearFinish = settings.getInt("yearFinishIndx", 0);
+
+        int startYEAR;
+        int finishYEAR;
+
+        if(centuryStart < firstCenturyAC){
+            startYEAR = (centuryStart - firstCenturyAC) * 100 - yearStart;
+        }
+        else{
+            startYEAR = (centuryStart - firstCenturyAC + 1) * 100 + yearStart;
+        }
+        if(centuryFinish < firstCenturyAC){
+            finishYEAR = (centuryFinish - firstCenturyAC) * 100 - yearFinish;
+        }
+        else{
+            finishYEAR = (centuryFinish - firstCenturyAC + 1) * 100 + yearFinish;
+        }
+
+        for(int _year = startYEAR; _year <= finishYEAR; _year++) {
+
+            String year = String.valueOf(_year) + "_год";
+            if(_year < 0){
+                year += "_до_н._э.";
+                year = year.substring(1);
+            }
+
+            SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+            Cursor cursor = db.query("Page", new String[]{"year", "lastUpdate"}, "year = ?",
+                    new String[]{Integer.toString(_year)}, null, null, null);
+
+            if(cursor != null) {
+
+                Calendar thatDay = Calendar.getInstance();
+                do {
+
+                    String str = cursor.getString(cursor.getColumnIndex("lastUpdate"));
+
+                    Log.d(LOG_TAG, str);
+                    try {
+                        Date date = dateFormat.parse(str);
+                        thatDay = Calendar.getInstance();
+                        thatDay.setTime(date);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                } while (cursor.moveToNext());
+
+                Calendar today = Calendar.getInstance();
+                long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
+
+                if(diff / (60 * 60 * 1000) > 24) {
+                    getPageRevIDAsync = new GetPageRevIDAsync();
+                    getPageRevIDAsync.execute(year);
+
+                }
+            }
+
+            else {
+                GetPageAsync getPageAsync = new GetPageAsync();
+                getPageAsync.execute(year);
+            }
+
+            cursor.close();
+
+
+
+            dbHelper.close();
+
+
+
+
+
+
+        }
 
         LuceneMorphology luceneMorph = null;
         try {
@@ -99,6 +187,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         String _text = "Бостон";
 
         _text = _text.toLowerCase();
+        //_textUTF8 = _textUTF8.toLowerCase();
         try {
             wordBaseForms = luceneMorph.getMorphInfo(_text);
         }catch (WrongCharaterException e){
@@ -107,56 +196,21 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(wordBaseForms != null) {
             int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
             String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
+            char pOS = partOfSpeach.charAt(0);
 
+            if(pOS == noun){
+                String lex = wordBaseForms.get(0).substring(0, pos - 3);
 
+                getPageTemplatesAsync = new GetPageTemplatesAsync();
+                String utf8lex = "";
+                try {
+                    utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+                getPageTemplatesAsync.execute(utf8lex);
 
-//            {
-//            Charset cset = Charset.forName("windows-1251");
-//            ByteBuffer buf = cset.encode(partOfSpeach);
-//            byte[] b = buf.array();
-//            String str = new String(b);
-//            byte[] bt = null;
-//            try {
-//                bt = partOfSpeach.getBytes("UTF-8");
-//            } catch (UnsupportedEncodingException e) {
-//                e.printStackTrace();
-//            }
-//            String fromBT = new String(bt.toString());
-//            //String partOfSpeach1251= new String(partOfSpeach.getBytes("UTF-8"), "windows-1251");
-//            String san = "c";
-//            cset = Charset.forName("windows-1251"); buf = cset.encode(san); b = buf.array(); str = new String(b);
-//            String sAN = "C";
-//            cset = Charset.forName("windows-1251"); buf = cset.encode(sAN); b = buf.array(); str = new String(b);
-//            String sru = "с";
-//            cset = Charset.forName("windows-1251"); buf = cset.encode(sru); b = buf.array(); str = new String(b);
-//            String sRU = "С";
-//            try {
-//                bt = sRU.getBytes("windows-1251");
-//            } catch (UnsupportedEncodingException e) {
-//                e.printStackTrace();
-//            }
-//            cset = Charset.forName("windows-1251"); buf = cset.encode(sRU); b = buf.array(); str = new String(b);
-//            String suk = "с";
-//            cset = Charset.forName("windows-1251"); buf = cset.encode(suk); b = buf.array(); str = new String(b);
-//            String sUK = "С";
-//            cset = Charset.forName("windows-1251"); buf = cset.encode(sUK); b = buf.array(); str = new String(b);
-//            if(partOfSpeach == sRU){
-//                String f = "";
-//            }
-//            }
-
-
-
-            String lex = wordBaseForms.get(0).substring(0, pos - 3);
-
-            getPageTemplatesAsync = new GetPageTemplatesAsync();
-            String utf8lex = "";
-            try {
-                utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                e.printStackTrace();
             }
-            getPageTemplatesAsync.execute(utf8lex);
 
         }
         Log.d(LOG_TAG, "--- onCreate main ---");
@@ -181,9 +235,29 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private void InitMap(){
+    private void InitClusterer(){
+        mClusterManager = new ClusterManager<Coordinate>(this, map);
+        map.setOnCameraChangeListener(mClusterManager);
+        map.setOnMarkerClickListener(mClusterManager);
 
+        //addItems();
     }
+
+//    private void addItems() {
+//
+//        // Set some lat/lng coordinates to start with.
+//        double lat = 51.5145160;
+//        double lng = -0.1270060;
+//
+//        // Add ten cluster items in close proximity, for purposes of this example.
+//        for (int i = 0; i < 10; i++) {
+//            double offset = i / 60d;
+//            lat = lat + offset;
+//            lng = lng + offset;
+//            Coordinate offsetItem = new Coordinate(lat, lng);
+//            mClusterManager.addItem(offsetItem);
+//        }
+//    }
 
     @Override
     public void onMapReady(GoogleMap map) {
