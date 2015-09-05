@@ -12,7 +12,9 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.support.annotation.IntegerRes;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.util.ArrayMap;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -120,63 +122,76 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             finishYEAR = (centuryFinish - firstCenturyAC + 1) * 100 + yearFinish;
         }
 
-        for(int _year = startYEAR; _year <= finishYEAR; _year++) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-            String year = String.valueOf(_year) + "_год";
-            if(_year < 0){
-                year += "_до_н._э.";
-                year = year.substring(1);
+        Cursor cursor = db.query("Page", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
+                new String[]{Integer.toString(startYEAR, finishYEAR)}, null, null, null);
+
+        ArrayList<Integer> listForFirstInit = new ArrayList<>();
+        ArrayList<Integer> listForUpdate = new ArrayList<>();
+        ArrayList<Integer> listForNotUpdate = new ArrayList<>();
+
+        if(cursor == null){//ни одной записи
+            for(int _year = startYEAR; _year <= finishYEAR; _year++) {
+                listForFirstInit.add(_year);
             }
+        }
 
-            SQLiteDatabase db = dbHelper.getWritableDatabase();
+        else {
 
-            Cursor cursor = db.query("Page", new String[]{"year", "lastUpdate"}, "year = ?",
-                    new String[]{Integer.toString(_year)}, null, null, null);
+            do {
 
-            if(cursor != null) {
+                int yearFromDB = cursor.getInt(cursor.getColumnIndex("year"));
+                String str = cursor.getString(cursor.getColumnIndex("lastUpdate"));
 
-                Calendar thatDay = Calendar.getInstance();
-                do {
+                Log.d(LOG_TAG, str);
+                try {
+                    Calendar thatDay = Calendar.getInstance();
+                    Date date = dateFormat.parse(str);
+                    thatDay.setTime(date);
 
-                    String str = cursor.getString(cursor.getColumnIndex("lastUpdate"));
+                    Calendar today = Calendar.getInstance();
 
-                    Log.d(LOG_TAG, str);
-                    try {
-                        Date date = dateFormat.parse(str);
-                        thatDay = Calendar.getInstance();
-                        thatDay.setTime(date);
-                    } catch (ParseException e) {
-                        e.printStackTrace();
+                    long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
+
+                    if (diff / (60 * 60 * 1000) > 24) {
+                        listForUpdate.add(yearFromDB);
+                    } else {
+                        listForNotUpdate.add(yearFromDB);
                     }
-                } while (cursor.moveToNext());
 
-                Calendar today = Calendar.getInstance();
-                long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
 
-                if(diff / (60 * 60 * 1000) > 24) {
-                    getPageRevIDAsync = new GetPageRevIDAsync();
-                    getPageRevIDAsync.execute(year);
+            } while (cursor.moveToNext());
 
+            for (int _year = startYEAR; _year <= finishYEAR; _year++) {
+                if(!(listForUpdate.contains(_year) || listForNotUpdate.contains(_year))){
+                    listForFirstInit.add((_year));
                 }
             }
-
-            else {
-                GetPageAsync getPageAsync = new GetPageAsync();
-                getPageAsync.execute(year);
-            }
-
-            cursor.close();
-
-
-
-            dbHelper.close();
-
-
-
-
-
-
         }
+
+        cursor.close();
+        dbHelper.close();
+
+//        for(int yearForFirstInit : listForFirstInit){
+//            GetPageAsync getPageAsync = new GetPageAsync();
+//            getPageAsync.execute(yearForFirstInit);
+//        }
+
+        Integer[] listForFirstInitMas = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
+        getPageAsync.execute(listForFirstInitMas);
+//
+//        for(int yearForUpdate : listForNotUpdate) {
+//            GetPageRevIDAsync getPageRevIDAsync = new GetPageRevIDAsync();
+//            getPageRevIDAsync.execute(yearForUpdate);
+//        }
+
+        Integer[] listForNotUpdateMas = listForNotUpdate.toArray(new Integer[listForNotUpdate.size()]);
+        getPageRevIDAsync.execute(listForNotUpdateMas);
+
 
         LuceneMorphology luceneMorph = null;
         try {
@@ -429,60 +444,88 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-    private class GetPageAsync extends AsyncTask<String, String, String> {
+    private class GetPageAsync extends AsyncTask<Integer, String, String[]> {
 
-        protected String doInBackground(String... strs) {
-            int count = strs.length;
-            String page = null;
+        protected String[] doInBackground(Integer... params) {
+
+            int count = params.length;
+            ArrayList<String> pages = new ArrayList<>();
             //long totalSize = 0;
             for (int i = 0; i < count; i++) {
+                String year = String.valueOf(params[i]) + "_год";
+                if (params[i] < 0) {
+                    year += "_до_н._э.";
+                    year = year.substring(1);
+                }
                 try {
-                    page = wikipedia.getPageText(strs[i]);
+                    String text = wikipedia.getPageText(year);
+                    pages.add(text);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    return page;
+                    //return page;
                 }
             }
-            return page;
+            String[] pagesMas = pages.toArray(new String[pages.size()]);
+            return pagesMas;
         }
 
 //        protected void onProgressUpdate(Integer... progress) {
 //            setProgressPercent(progress[0]);
 //        }
 //
-        protected void onPostExecute(String result) {
-            if(result == null || result.contains("#перенаправление"))
+        protected void onPostExecute(String... result) {
+            if(result == null)
                 return;
 
-            ParseEvent(result);
+            for(String resItem : result) {
+                if (resItem.contains("#перенаправление"))
+                    return;
 
+                ParseEvent(resItem);
+            }
         }
     }
 
-    private class GetPageRevIDAsync extends AsyncTask<String, String, Long> {
+    private class GetPageRevIDAsync extends AsyncTask<Integer, String, ArrayMap<Integer, Long>> {
 
-        protected Long doInBackground(String... strs) {
-            int count = strs.length;
+        protected ArrayMap<Integer, Long> doInBackground(Integer... params) {
+            int count = params.length;
             long revId = 0;
+
+            ArrayList<String> pages = new ArrayList<>();
             //long totalSize = 0;
             for (int i = 0; i < count; i++) {
-                revId = wikipedia.getPageRevId("1914_год");
+                String year = String.valueOf(params[i]) + "_год";
+                if (params[i] < 0) {
+                    year += "_до_н._э.";
+                    year = year.substring(1);
+                }
+
+                pages.add(year);
+                //revId = wikipedia.getPageRevId(year);
             }
-            return revId;
+
+            ArrayMap<Integer, Long> pagesWithID = wikipedia.getPagesRevId(pages);
+
+
+            //String revIdStr = Long.toString(revId);
+            //return new String[]{params[0], revIdStr};
+            return pagesWithID;
         }
 
         //        protected void onProgressUpdate(Integer... progress) {
 //            setProgressPercent(progress[0]);
 //        }
 
-        protected void onPostExecute(Long result) {
-            if(result == null || result == -1)
+        protected void onPostExecute(ArrayMap<Integer, Long> pagesWithID) {
+            if(pagesWithID == null)
                 return;
-            long res = result;
+
+            long res = Long.parseLong(result[1]);
             SQLiteDatabase db = dbHelper.getWritableDatabase();
 
             Cursor cursor = db.query("Page", new String[]{"revisionID"}, "year = ?",
-                    new String[]{Integer.toString(startDate)}, null, null, null);
+                    new String[]{result[0]}, null, null, null);
 
             if(cursor != null){
                 if(cursor.moveToFirst()){
@@ -494,7 +537,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         Log.d(LOG_TAG, Long.toString(id));
                         if(id != res){
                             getPageAsync = new GetPageAsync();
-                            getPageAsync.execute(("1914_год"));
+                            getPageAsync.execute(result[0]);
                         }
                         else{
                             //берём из БД

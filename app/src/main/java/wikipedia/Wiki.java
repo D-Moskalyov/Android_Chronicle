@@ -1,5 +1,8 @@
 package wikipedia;
 
+import android.support.v4.util.ArrayMap;
+import org.json.JSONStringer;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -8,6 +11,7 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -270,6 +274,52 @@ public class Wiki implements Serializable{
 
             int x = line.indexOf("\"revid\":") + 8;
             int y = line.indexOf(",", x);
+
+            IDString = line.substring(x, y);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return Long.parseLong(IDString);
+    }
+
+    public ArrayMap<Integer, Long> getPagesRevId(ArrayList<String> pages){
+
+        ArrayMap<Integer, Long> pagesWithID = new ArrayMap<>();
+
+        StringBuilder url = new StringBuilder(query);
+        url.append("prop=revisions&rvprop=ids&titles=");
+
+        for(String page : pages) {
+            url.append(page);
+            url.append("|");
+        }
+
+        String IDString = "0";
+
+        try {
+            String line = fetch(url.toString(), "getPageRevId");
+
+            //json.decode('unicode_escape')
+            int x = 0;
+            int y = 0;
+            int start = 0;
+
+            while (x != -1) {
+                x = line.indexOf("title\": \"", start) + 10;
+                if (x == -1)
+                    continue;
+
+                y = line.indexOf("\"", x);
+                if (x != y) {
+
+                }
+
+                start = y;
+            }
+
+//            int x = line.indexOf("\"revid\":") + 8;
+//            int y = line.indexOf(",", x);
 
             IDString = line.substring(x, y);
         } catch (IOException e) {
