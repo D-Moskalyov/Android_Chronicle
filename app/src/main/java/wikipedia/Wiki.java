@@ -285,7 +285,7 @@ public class Wiki implements Serializable{
 
     public ArrayMap<Integer, Long> getPagesRevId(ArrayList<String> pages){
 
-        ArrayMap<Integer, Long> pagesWithID = new ArrayMap<>();
+        ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
 
         StringBuilder url = new StringBuilder(query);
         url.append("prop=revisions&rvprop=ids&titles=");
@@ -303,30 +303,48 @@ public class Wiki implements Serializable{
             //json.decode('unicode_escape')
             int x = 0;
             int y = 0;
+            int xRev = 0;
+            int yRev = 0;
             int start = 0;
 
+            x = line.indexOf("title\": \"", start) + 10;
+
             while (x != -1) {
-                x = line.indexOf("title\": \"", start) + 10;
+
                 if (x == -1)
                     continue;
 
                 y = line.indexOf("\"", x);
                 if (x != y) {
+                    int es = line.indexOf(" ", x);
+                    String yearStr = line.substring(x, es);
+                    String ACBC = line.substring(es + 1, y);
+                    Integer year = Integer.parseInt(yearStr);
+                    if(ACBC == "\\u0433\\u043e\\u0434 \\u0434\\u043e \\u043d. \\u044d.")
+                        year *= -1;
 
+                    xRev = line.indexOf("\"revid\": ", y) + 8;
+                    yRev = line.indexOf(",", x);
+
+                    String revStr = line.substring(xRev, yRev);
+                    Long revID = Long.parseLong(revStr);
+
+                    pagesWithID.put(year, revID);
                 }
 
-                start = y;
+                start = yRev;
+                x = line.indexOf("title\": \"", start) + 10;
             }
 
 //            int x = line.indexOf("\"revid\":") + 8;
 //            int y = line.indexOf(",", x);
 
-            IDString = line.substring(x, y);
+//            IDString = line.substring(x, y);
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return Long.parseLong(IDString);
+        return pagesWithID;
     }
 
     public boolean isContainCoordTemplate(String title){

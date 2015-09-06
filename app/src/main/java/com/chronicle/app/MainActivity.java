@@ -15,7 +15,9 @@ import android.os.AsyncTask;
 import android.support.annotation.IntegerRes;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.util.ArrayMap;
+import android.util.JsonReader;
 import android.util.Log;
+import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -27,15 +29,22 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.clustering.ClusterManager;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 import wikipedia.Wiki;
 import org.apache.lucene.morphology.*;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 //implements OnMapReadyCallback
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -101,6 +110,49 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
 
 
+        String jsn = StringEscapeUtils.unescapeJava("\\u041a\\u0438\\u0435\\u0432\\");
+
+
+//        LuceneMorphology luceneMorph = null;
+//        try {
+//            luceneMorph = new RussianLuceneMorphology();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        String _text = "Ѕостон";
+//
+//        _text = _text.toLowerCase();
+//        //_textUTF8 = _textUTF8.toLowerCase();
+//        try {
+//            wordBaseForms = luceneMorph.getMorphInfo(_text);
+//        }catch (WrongCharaterException e){
+//            e.printStackTrace();
+//        }
+//        if(wordBaseForms != null) {
+//            int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
+//            String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
+//            char pOS = partOfSpeach.charAt(0);
+//
+//            if(pOS == noun){
+//                String lex = wordBaseForms.get(0).substring(0, pos - 3);
+//
+//                getPageTemplatesAsync = new GetPageTemplatesAsync();
+//                String utf8lex = "";
+//                try {
+//                    utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
+//                } catch (UnsupportedEncodingException e) {
+//                    e.printStackTrace();
+//                }
+//                getPageTemplatesAsync.execute(utf8lex);
+//
+//            }
+//
+//        }
+
+
+
+
+
         int centuryStart = settings.getInt("centStartIndx", 0);
         int centuryFinish = settings.getInt("centFinishIndx", 0);
         int yearStart = settings.getInt("yearStartIndx", 0);
@@ -127,9 +179,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         Cursor cursor = db.query("Page", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
                 new String[]{Integer.toString(startYEAR, finishYEAR)}, null, null, null);
 
-        ArrayList<Integer> listForFirstInit = new ArrayList<>();
-        ArrayList<Integer> listForUpdate = new ArrayList<>();
-        ArrayList<Integer> listForNotUpdate = new ArrayList<>();
+        ArrayList<Integer> listForFirstInit = new ArrayList<Integer>();
+        ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
+        ArrayList<Integer> listForNotUpdate = new ArrayList<Integer>();
 
         if(cursor == null){//ни одной записи
             for(int _year = startYEAR; _year <= finishYEAR; _year++) {
@@ -193,41 +245,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         getPageRevIDAsync.execute(listForNotUpdateMas);
 
 
-        LuceneMorphology luceneMorph = null;
-        try {
-            luceneMorph = new RussianLuceneMorphology();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        String _text = "Ѕостон";
 
-        _text = _text.toLowerCase();
-        //_textUTF8 = _textUTF8.toLowerCase();
-        try {
-            wordBaseForms = luceneMorph.getMorphInfo(_text);
-        }catch (WrongCharaterException e){
-            e.printStackTrace();
-        }
-        if(wordBaseForms != null) {
-            int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
-            String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
-            char pOS = partOfSpeach.charAt(0);
-
-            if(pOS == noun){
-                String lex = wordBaseForms.get(0).substring(0, pos - 3);
-
-                getPageTemplatesAsync = new GetPageTemplatesAsync();
-                String utf8lex = "";
-                try {
-                    utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-                getPageTemplatesAsync.execute(utf8lex);
-
-            }
-
-        }
         Log.d(LOG_TAG, "--- onCreate main ---");
 
 //        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -444,12 +462,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-    private class GetPageAsync extends AsyncTask<Integer, String, String[]> {
+    private class GetPageAsync extends AsyncTask<Integer, String, ArrayMap<Integer, String>> {
 
-        protected String[] doInBackground(Integer... params) {
+        protected ArrayMap<Integer, String> doInBackground(Integer... params) {
 
             int count = params.length;
-            ArrayList<String> pages = new ArrayList<>();
+            ArrayMap<Integer, String> pages = new ArrayMap<Integer, String>();
             //long totalSize = 0;
             for (int i = 0; i < count; i++) {
                 String year = String.valueOf(params[i]) + "_год";
@@ -459,30 +477,34 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 try {
                     String text = wikipedia.getPageText(year);
-                    pages.add(text);
+                    pages.put(params[i], text);
                 } catch (IOException e) {
                     e.printStackTrace();
                     //return page;
                 }
             }
-            String[] pagesMas = pages.toArray(new String[pages.size()]);
-            return pagesMas;
+            //String[] pagesMas = pages.toArray(new String[pages.size()]);
+            return pages;
         }
 
 //        protected void onProgressUpdate(Integer... progress) {
 //            setProgressPercent(progress[0]);
 //        }
 //
-        protected void onPostExecute(String... result) {
+        protected void onPostExecute(ArrayMap<Integer, String> result) {
             if(result == null)
                 return;
 
-            for(String resItem : result) {
-                if (resItem.contains("#перенаправление"))
-                    return;
+            ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
 
-                ParseEvent(resItem);
+
+            for(int i = 0; i < result.size(); i++) {
+                if (!result.valueAt(i).contains("#перенаправление") &
+                        !result.valueAt(i).contains("#REDIRECT"))
+                    allEvntsByYear.put(result.keyAt(i), result.valueAt(i));
             }
+
+            ParseEvent(allEvntsByYear);
         }
     }
 
@@ -492,7 +514,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             int count = params.length;
             long revId = 0;
 
-            ArrayList<String> pages = new ArrayList<>();
+            ArrayList<String> pages = new ArrayList<String>();
             //long totalSize = 0;
             for (int i = 0; i < count; i++) {
                 String year = String.valueOf(params[i]) + "_год";
@@ -507,9 +529,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             ArrayMap<Integer, Long> pagesWithID = wikipedia.getPagesRevId(pages);
 
-
-            //String revIdStr = Long.toString(revId);
-            //return new String[]{params[0], revIdStr};
             return pagesWithID;
         }
 
@@ -521,28 +540,54 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             if(pagesWithID == null)
                 return;
 
-            long res = Long.parseLong(result[1]);
+            //long res = Long.parseLong(result[1]);
             SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-            Cursor cursor = db.query("Page", new String[]{"revisionID"}, "year = ?",
-                    new String[]{result[0]}, null, null, null);
+            Cursor cursor = db.query("Page", new String[]{"year, revisionID"}, "year >= ? and year <= ?",
+                    new String[]{String.valueOf(startDate), String.valueOf(finishDate)}, null, null, null);
 
+            ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
             if(cursor != null){
                 if(cursor.moveToFirst()){
                     do{
-                        long id = -1;
-                        for(String cn : cursor.getColumnNames()){
-                            id = cursor.getLong(cursor.getColumnIndex(cn));
-                        }
-                        Log.d(LOG_TAG, Long.toString(id));
-                        if(id != res){
-                            getPageAsync = new GetPageAsync();
-                            getPageAsync.execute(result[0]);
+                        int year = cursor.getInt(cursor.getColumnIndex("year"));
+                        long revID = cursor.getInt(cursor.getColumnIndex("revisionID"));
+
+                        if (pagesWithID.get(new Integer(year)) != new Long(revID)){
+                            listForUpdate.add(new Integer(year));
+
                         }
                         else{
                             //берЄм из Ѕƒ
                         }
+
                     } while (cursor.moveToNext());
+
+                    cursor.close();
+
+                    ContentValues cv = new ContentValues();
+
+                    Integer[] listForUpdateMas = listForUpdate.toArray(new Integer[listForUpdate.size()]);
+                    GetPageAsync getPageAsync = new GetPageAsync();
+                    getPageAsync.execute(listForUpdateMas);
+
+                    try {
+                        getPageAsync.get(50000, TimeUnit.MILLISECONDS);
+
+                        cv.put("lastUpdate", Calendar.getInstance().toString());
+                        db.update("Page", cv, "year >= ? and year <= ?",
+                                new String[]{String.valueOf(startDate), String.valueOf(finishDate)});
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    } catch (ExecutionException e) {
+                        e.printStackTrace();
+                    } catch (TimeoutException e) {
+                        e.printStackTrace();
+                    }
+                    finally {
+                        dbHelper.close();
+                    }
+
                 }
 
             }
@@ -600,7 +645,104 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+    private class GetPageRedirectAsync extends AsyncTask<String, String, String>{
+        @Override
+        protected String doInBackground(String... params) {
+            return null;
+        }
+    }
 
+
+    private void ParseLexFromEvents(ArrayList<EventModel> events){
+
+        ArrayList<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
+
+        LuceneMorphology luceneMorph = null;
+        try {
+            luceneMorph = new RussianLuceneMorphology();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for(EventModel evModel : events){
+
+            int x = 0;
+            int y = 0;
+            String word;
+
+            ArrayList<String> lexemes = new ArrayList<String>();
+            ArrayList<String> rawWords = new ArrayList<String>();
+            String text = evModel.text;
+
+            y = text.indexOf(" ", x);
+
+            while (y != -1){
+                word = text.substring(x, y);
+                word = PunctuationHook(word);
+
+                if(word != null & word != ""){
+                    rawWords.add(word);
+                }
+
+                x = y + 1;
+                y = text.indexOf(" ", x);
+            }
+
+            y = text.indexOf(".", x);
+
+            if(y != -1){
+                word = text.substring(x, y);
+                word = PunctuationHook(word);
+
+                if(word != null & word != ""){
+                    rawWords.add(word);
+                }
+            }
+
+            for(String rawWord : rawWords){
+                String lex = "";
+
+
+                rawWord = rawWord.toLowerCase();
+                try {
+                    wordBaseForms = luceneMorph.getMorphInfo(rawWord);
+                }catch (WrongCharaterException e){
+                    e.printStackTrace();
+                }
+                if(wordBaseForms != null) {
+                    int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
+                    String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
+                    char pOS = partOfSpeach.charAt(0);
+
+                    if(pOS == noun){
+                        lex = wordBaseForms.get(0).substring(0, pos - 3);
+                        lexemes.add(lex);
+//                        getPageTemplatesAsync = new GetPageTemplatesAsync();
+//                        String utf8lex = "";
+//                        try {
+//                            utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
+//                        } catch (UnsupportedEncodingException e) {
+//                            e.printStackTrace();
+//                        }
+//                        getPageTemplatesAsync.execute(utf8lex);
+                    }
+                }
+
+            }
+
+            eventWithLexList.add(new EventWithLex(evModel, lexemes));
+        }
+        GetCoordForEvent(eventWithLexList);
+    }
+
+
+    private void GetCoordForEvent(List<EventWithLex> eventWithLexes){
+
+        for(EventWithLex eventWithLex : eventWithLexes){
+
+        }
+
+    }
 
     private Object[] ParseCoord(String fullText){
 
@@ -655,11 +797,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return coord;
     }
 
-    private void ParseEvent(String events){
+    private void ParseEvent(ArrayMap<Integer, String> eventsByYear){
 
-        dbHelper = new DBHelper(this);
+        //dbHelper = new DBHelper(this);
 
-        List<String> eventList = new ArrayList<String>();
+        //List<String> eventList = new ArrayList<String>();
+
+        List<EventModel> eventList = new ArrayList<EventModel>();
+
         String eventItem = null;
         int start;
         int finish;
@@ -668,27 +813,82 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         int startRef;
         int finishRef;
 
-        start = events.indexOf("== —обыти€ ==");
-        finish = events.indexOf(" ==\n", start + 14);
-        if(finish != -1)
-            events = events.substring(start + 14, finish);
-        else events = events.substring(start + 14);
+        for(int i = 0; i < eventsByYear.size(); i++) {
 
-        startEv = events.indexOf("*");
-        finishEv = events.indexOf("*", startEv + 1);
+            String events = eventsByYear.valueAt(i);
 
-        while(finishEv != -1) {//не последнее событие
+            start = events.indexOf("== —обыти€ ==");
+            finish = events.indexOf(" ==\n", start + 14);
+            if (finish != -1)
+                events = events.substring(start + 14, finish);
+            else events = events.substring(start + 14);
 
-            if (finishEv - startEv != 1) {
+            startEv = events.indexOf("*");
+            finishEv = events.indexOf("*", startEv + 1);
 
-                if (finishEv - startEv > 17) {//ещЄ что-то кроме даты
-                    eventItem = events.substring(startEv + 2, finishEv - 1);
+            while (finishEv != -1) {//не последнее событие
 
-                    int indxSlash = eventItem.indexOf("==");
-                    if( indxSlash != -1){
-                        eventItem = eventItem.substring(0, indxSlash - 2);
+                if (finishEv - startEv != 1) {
+
+                    if (finishEv - startEv > 17) {//ещЄ что-то кроме даты
+                        eventItem = events.substring(startEv + 2, finishEv - 1);
+
+                        int indxSlash = eventItem.indexOf("==");
+                        if (indxSlash != -1) {
+                            eventItem = eventItem.substring(0, indxSlash - 2);
+                        }
+
+
+                        startRef = eventItem.indexOf("<ref");
+                        while (startRef != -1) {
+                            startRef = eventItem.indexOf("<ref>");
+                            if (startRef != -1) {
+                                finishRef = eventItem.indexOf("</ref>", startRef);
+                                eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+
+                                startRef = eventItem.indexOf("<ref");
+                            } else {
+                                startRef = eventItem.indexOf("<ref");
+                                finishRef = eventItem.indexOf("/>", startRef);
+                                if (finishRef != -1) {
+                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
+                                } else {
+                                    finishRef = eventItem.indexOf("</ref>", startRef);
+                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+                                }
+                                startRef = eventItem.indexOf("<ref");
+                            }
+
+                        }
+
+                        while (eventItem.contains("[[")) {
+                            eventItem = TrimHooks(eventItem);
+                        }
+
+                        eventList.add(new EventModel(eventItem));
+
+                    } else {
+                        eventItem = events.substring(startEv + 4, finishEv - 3) + " Ч ";
                     }
 
+                } else {//несколько событий
+
+                    startEv++;
+                    finishEv = events.indexOf("*", startEv + 1);
+
+                    int indxDef = eventItem.indexOf(" Ч ");
+
+                    if (indxDef != -1)
+                        eventItem = eventItem.substring(0, indxDef + 3) + //вз€ть дату из старого eventItem
+                                events.substring(startEv + 2, finishEv - 1);
+                    else
+                        eventItem = eventItem + //вз€ть дату из старого eventItem
+                                events.substring(startEv + 2, finishEv - 1);
+
+                    int indxSlash = eventItem.indexOf("==");
+                    if (indxSlash != -1) {
+                        eventItem = eventItem.substring(0, indxSlash - 2);
+                    }
 
                     startRef = eventItem.indexOf("<ref");
                     while (startRef != -1) {
@@ -698,14 +898,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
 
                             startRef = eventItem.indexOf("<ref");
-                        }
-                        else{
+                        } else {
                             startRef = eventItem.indexOf("<ref");
                             finishRef = eventItem.indexOf("/>", startRef);
-                            if(finishRef != -1) {
+                            if (finishRef != -1) {
                                 eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
-                            }
-                            else{
+                            } else {
                                 finishRef = eventItem.indexOf("</ref>", startRef);
                                 eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
                             }
@@ -719,96 +917,84 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
 
 
-                    db = dbHelper.getWritableDatabase();
-
-                    ContentValues cv = new ContentValues();
-
-                    cv.put("text", eventItem);
-                    cv.put("lat_dir", "NaN");
-                    cv.put("lon_dir", "NaN");
-                    cv.put("lat_deg", 0);
-                    cv.put("lon_deg", 0);
-                    cv.put("lat_min", 0);
-                    cv.put("lon_min", 0);
-                    cv.put("lat_sec", 0);
-                    cv.put("lon_sec", 0);
-
-                    long id = db.insert("Event", null, cv);
-                }
-                else {
-                    eventItem = events.substring(startEv + 4, finishEv - 3) + " Ч ";
+                    eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
                 }
 
-            } else {//несколько событий
-
-                startEv++;
+                startEv = finishEv;
                 finishEv = events.indexOf("*", startEv + 1);
-
-                int indxDef= eventItem.indexOf(" Ч ");
-
-                if(indxDef != -1)
-                    eventItem = eventItem.substring(0, indxDef + 3) + //вз€ть дату из старого eventItem
-                            events.substring(startEv + 2, finishEv - 1);
-                else
-                    eventItem = eventItem + //вз€ть дату из старого eventItem
-                            events.substring(startEv + 2, finishEv - 1);
-
-                int indxSlash = eventItem.indexOf("==");
-                if( indxSlash != -1){
-                    eventItem = eventItem.substring(0, indxSlash - 2);
-                }
-
-                startRef = eventItem.indexOf("<ref");
-                while (startRef != -1) {
-                    startRef = eventItem.indexOf("<ref>");
-                    if (startRef != -1) {
-                        finishRef = eventItem.indexOf("</ref>", startRef);
-                        eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
-
-                        startRef = eventItem.indexOf("<ref");
-                    }
-                    else{
-                        startRef = eventItem.indexOf("<ref");
-                        finishRef = eventItem.indexOf("/>", startRef);
-                        if(finishRef != -1) {
-                            eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
-                        }
-                        else{
-                            finishRef = eventItem.indexOf("</ref>", startRef);
-                            eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
-                        }
-                        startRef = eventItem.indexOf("<ref");
-                    }
-
-                }
-
-                while (eventItem.contains("[[")) {
-                    eventItem = TrimHooks(eventItem);
-                }
-
-
-                db = dbHelper.getWritableDatabase();
-
-                ContentValues cv = new ContentValues();
-
-                cv.put("text", eventItem);
-                cv.put("lat_dir", "NaN");
-                cv.put("lon_dir", "NaN");
-                cv.put("lat_deg", 0);
-                cv.put("lon_deg", 0);
-                cv.put("lat_min", 0);
-                cv.put("lon_min", 0);
-                cv.put("lat_sec", 0);
-                cv.put("lon_sec", 0);
-
-
-                long id = db.insert("Event", null, cv);
             }
-
-            startEv = finishEv;
-            finishEv = events.indexOf("*", startEv + 1);
         }
+
+        db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query("Event", new String[]{"year", "text"}, "year >= ? and year <= ?",
+                new String[]{Integer.toString(yearStart, yearFinish)}, null, null, null);
+
+        ArrayList<EventModel> eventsFromDB = new ArrayList<EventModel>();
+        //ArrayList<EventModel> eventsToDelFromDB = new ArrayList<EventModel>();
+        ArrayList<EventModel> eventsToParseLex = new ArrayList<EventModel>();
+
+        if(cursor == null){//ни одной записи
+            eventsToParseLex.addAll(eventList);
+        }
+
+        else {
+            do {
+                int yearFromDB = cursor.getInt(cursor.getColumnIndex("year"));
+                String textFromDB = cursor.getString(cursor.getColumnIndex("text"));
+
+                eventsFromDB.add(new EventModel(textFromDB, yearFromDB));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+
+
+        for(EventModel evntMod : eventsFromDB){
+            if (!(eventList.contains(evntMod))){//возможно не будет работать
+                //eventsToDelFromDB.add(evntMod);
+                db.delete("Event", "year = ? and text = ?", new String[]{String.valueOf(evntMod.year), evntMod.text});
+            }
+        }
+
+        for(EventModel evntMod : eventList){
+            if (!(eventsFromDB.contains(evntMod))){//возможно не будет работать
+                eventsToParseLex.add(evntMod);
+            }
+        }
+
         dbHelper.close();
+
+        ParseLexFromEvents(eventsToParseLex);
+
+//        db = dbHelper.getWritableDatabase();
+//
+//        ContentValues cv = new ContentValues();
+//
+//        cv.put("text", eventItem);
+//        cv.put("lat_dir", "NaN");
+//        cv.put("lon_dir", "NaN");
+//        cv.put("lat_deg", 0);
+//        cv.put("lon_deg", 0);
+//        cv.put("lat_min", 0);
+//        cv.put("lon_min", 0);
+//        cv.put("lat_sec", 0);
+//        cv.put("lon_sec", 0);
+//
+//        long id = db.insert("Event", null, cv);
+//
+//        dbHelper.close();
+    }
+
+    private String PunctuationHook(String word){
+
+        word = word.replace(" ", "");
+        word = word.replace(",", "");
+        word = word.replace(";", "");
+        word = word.replace(":", "");
+        word = word.replace(".", "");
+        word = word.replace("...", "");
+
+        return  word;
     }
 
     private String TrimHooks(String evnt){
@@ -865,6 +1051,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
+        }
+    }
+
+    class EventWithLex{
+
+        EventModel evntModel;
+        ArrayList<String> lexemes;
+
+        public EventWithLex(EventModel evModel, ArrayList<String> lxms){
+            evntModel= evModel;
+            lexemes = lxms;
         }
     }
 
