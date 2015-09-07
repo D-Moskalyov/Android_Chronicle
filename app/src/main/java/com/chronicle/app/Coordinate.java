@@ -12,6 +12,11 @@ import java.util.Comparator;
 public class Coordinate implements ClusterItem, Comparable<Coordinate> {
     private final LatLng mPosition;
 
+
+    public Coordinate() {
+        mPosition = null;
+    }
+
     public Coordinate(double lat, double lng) {
         mPosition = new LatLng(lat, lng);
     }

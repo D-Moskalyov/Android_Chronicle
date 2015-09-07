@@ -594,61 +594,110 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private class GetPageTemplatesAsync extends AsyncTask<String, String, String> {
+    private class GetPageTemplatesAsync extends AsyncTask<String, String, ArrayList<String>> {
 
-        protected String doInBackground(String... strs) {
-            if (wikipedia.isContainCoordTemplate(strs[0])){
-                return strs[0];
+        protected ArrayList<String> doInBackground(String... strs) {
+
+            ArrayList<String> lexesList = new ArrayList<String>(Arrays.asList(strs));
+            ArrayList<String> titleWithCoordTemplate = wikipedia.getTitlePageWithCoordTemplate(lexesList);
+
+            for(int i = 0; i < titleWithCoordTemplate.size(); i++){
+                titleWithCoordTemplate.set(i, StringEscapeUtils.unescapeJava(titleWithCoordTemplate.get(i)));
             }
-            else
-                return "";
+
+//            if (wikipedia.isContainCoordTemplate(strs[0])){
+//                return strs[0];
+//            }
+//            else
+//                return "";
+
+            return titleWithCoordTemplate;
         }
 
-        protected void onPostExecute(String result) {
-            if(result != "") {
-                //try {
-                    GetPageForCoordAsync getPageForCoordAsync = new GetPageForCoordAsync();
-                    getPageForCoordAsync.execute(result);
-                    //Object[] coord = ParseCoord(wikipedia.getPageText(result));
-
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                }
-            }
-        }
-
-        private class GetPageForCoordAsync extends AsyncTask<String, String, String> {
-
-            protected String doInBackground(String... strs) {
-                int count = strs.length;
-                String page = null;
-                //long totalSize = 0;
-                for (int i = 0; i < count; i++) {
-                    try {
-                        page = wikipedia.getPageText(strs[i]);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        return page;
-                    }
-                }
-                return page;
-            }
-
-            //        protected void onProgressUpdate(Integer... progress) {
-//            setProgressPercent(progress[0]);
+//        protected void onPostExecute(String result) {
+//            if(result != "") {
+//                //try {
+//                    GetPageForCoordAsync getPageForCoordAsync = new GetPageForCoordAsync();
+//                    getPageForCoordAsync.execute(result);
+//                    //Object[] coord = ParseCoord(wikipedia.getPageText(result));
+//
+////                } catch (IOException e) {
+////                    e.printStackTrace();
+////                }
+//            }
 //        }
 //
-            protected void onPostExecute(String result) {
-                Object[] coord = ParseCoord(result);
+//        private class GetPageForCoordAsync extends AsyncTask<String, String, String> {
+//
+//            protected String doInBackground(String... strs) {
+//                int count = strs.length;
+//                String page = null;
+//                //long totalSize = 0;
+//                for (int i = 0; i < count; i++) {
+//                    try {
+//                        page = wikipedia.getPageText(strs[i]);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                        return page;
+//                    }
+//                }
+//                return page;
+//            }
+//
+//            //        protected void onProgressUpdate(Integer... progress) {
+////            setProgressPercent(progress[0]);
+////        }
+////
+//            protected void onPostExecute(String result) {
+//                Object[] coord = ParseCoord(result);
+//
+//            }
+//        }
+    }
+
+    private class GetCoordsAsynk extends AsyncTask<String, String, ArrayMap<String, Coordinate>>{
+        @Override
+        protected ArrayMap<String, Coordinate> doInBackground(String... params) {
+
+            ArrayMap<String, Coordinate> placesWithCoord = new ArrayMap<String, Coordinate>();
+
+            for(String place : params){
+                try {
+                    String fullText = wikipedia.getPageText(place);
+
+                    Coordinate coordinate = ParseCoord(fullText);
+
+                    placesWithCoord.put(place, coordinate);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
 
             }
+
+
+            return  placesWithCoord;
         }
     }
 
-    private class GetPageRedirectAsync extends AsyncTask<String, String, String>{
+    private class GetPageRedirectAsync extends AsyncTask<String, String, ArrayList<String>>{
+        @Override
+        protected ArrayList<String> doInBackground(String... params) {
+
+            ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
+            ArrayList<String> titleWithRedirect = wikipedia.getTitlePageWithRedirect(paramsList);
+
+            for(int i = 0; i < titleWithRedirect.size(); i++){
+                titleWithRedirect.set(i, StringEscapeUtils.unescapeJava(titleWithRedirect.get(i)));
+            }
+
+            return titleWithRedirect;
+        }
+    }
+
+    private class GetAddressPageForRedirectAsync extends AsyncTask<String, String, String>{
         @Override
         protected String doInBackground(String... params) {
-            return null;
+            return wikipedia.getRedirectForPage(params[0]);
         }
     }
 
@@ -732,69 +781,272 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             eventWithLexList.add(new EventWithLex(evModel, lexemes));
         }
-        GetCoordForEvent(eventWithLexList);
+        GetRedirectForLexemes(eventWithLexList);
     }
 
+    private void GetRedirectForLexemes(List<EventWithLex> eventWithLexes){
 
-    private void GetCoordForEvent(List<EventWithLex> eventWithLexes){
+        ArrayList<String> rawLex = new ArrayList<String>();
 
         for(EventWithLex eventWithLex : eventWithLexes){
+            rawLex.addAll(eventWithLex.lexemes);
+        }
 
+        String[] rawLexMas = rawLex.toArray(new String[rawLex.size()]);
+
+        GetPageRedirectAsync getPageRedirectAsync = new GetPageRedirectAsync();
+        getPageRedirectAsync.execute(rawLexMas);
+
+        try {
+            ArrayList<String> lexForRedirect = getPageRedirectAsync.get(50000, TimeUnit.MICROSECONDS);
+
+            for(String lexForRedir : lexForRedirect){
+                GetAddressPageForRedirectAsync getAddressPageForRedirectAsync =
+                        new GetAddressPageForRedirectAsync();
+                getAddressPageForRedirectAsync.execute(lexForRedir);
+                String lexToRedir = getAddressPageForRedirectAsync.get(50000, TimeUnit.MICROSECONDS);
+
+                for(int i = 0; i < eventWithLexes.size(); i++){
+                    int indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                    while(indx >= 0){
+                        eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
+                        indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                    }
+                }
+            }
+
+            GetCoordForEvent(eventWithLexes);
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
         }
 
     }
 
-    private Object[] ParseCoord(String fullText){
+    private void GetCoordForEvent(List<EventWithLex> eventWithLexes){
 
-        Object[] coord = new Object[8];
+        ArrayList<String> allLexemes = new ArrayList<String>();
 
-        int lat_dir_indx; int lat_deg_indx; int lat_min_indx; int lat_sec_indx;
-        int lon_dir_indx; int lon_deg_indx; int lon_min_indx; int lon_sec_indx;
+        for(EventWithLex eventWithLex : eventWithLexes){
+            allLexemes.addAll(eventWithLex.lexemes);
+        }
 
-        int lat_dir_indx_end; int lat_deg_indx_end; int lat_min_indx_end; int lat_sec_indx_end;
-        int lon_dir_indx_end; int lon_deg_indx_end; int lon_min_indx_end; int lon_sec_indx_end;
+        HashSet<String> set = new HashSet<String>(allLexemes);
 
-        lat_dir_indx = fullText.indexOf("lat_dir");
-        lat_deg_indx = fullText.indexOf("lat_deg");
-        lat_min_indx = fullText.indexOf("lat_min");
-        lat_sec_indx = fullText.indexOf("lat_sec");
-        lon_dir_indx = fullText.indexOf("lon_dir");
-        lon_deg_indx = fullText.indexOf("lon_deg");
-        lon_min_indx = fullText.indexOf("lon_min");
-        lon_sec_indx = fullText.indexOf("lon_sec");
+        String[] rawLexMas = set.toArray(new String[set.size()]);
 
-        lat_dir_indx_end = fullText.indexOf("|", lat_dir_indx + 9);
-        lat_deg_indx_end = fullText.indexOf("|", lat_deg_indx + 9);
-        lat_min_indx_end = fullText.indexOf("|", lat_min_indx + 9);
-        lat_sec_indx_end = fullText.indexOf("|", lat_sec_indx + 9);
-        lon_dir_indx_end = fullText.indexOf("|", lon_dir_indx + 9);
-        lon_deg_indx_end = fullText.indexOf("|", lon_deg_indx + 9);
-        lon_min_indx_end = fullText.indexOf("|", lon_min_indx + 9);
-        lon_sec_indx_end = fullText.indexOf("|", lon_sec_indx + 9);
+        GetPageTemplatesAsync getPageTemplatesAsync = new GetPageTemplatesAsync();
+        getPageTemplatesAsync.execute(rawLexMas);
 
-        if(lat_dir_indx != -1)
-            coord[0] = fullText.substring(lat_dir_indx, lat_dir_indx_end);
-        else coord[0] = "N";
-        coord[1] = fullText.substring(lat_deg_indx, lat_deg_indx_end);
-        coord[2] = fullText.substring(lat_min_indx, lat_min_indx_end);
-        coord[3] = fullText.substring(lat_sec_indx, lat_sec_indx_end);
-        if(lon_dir_indx != -1)
-            coord[4] = fullText.substring(lon_dir_indx, lon_dir_indx_end);
-        else coord[4] = "E";
-        coord[5] = fullText.substring(lon_deg_indx, lon_deg_indx_end);
-        coord[6] = fullText.substring(lon_min_indx, lon_min_indx_end);
-        coord[7] = fullText.substring(lon_sec_indx, lon_sec_indx_end);
+        try {
+            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get(50000, TimeUnit.MICROSECONDS);
 
-        coord[0] = ((String)(coord[0])).trim();
-        coord[1] = ((String)(coord[1])).trim();
-        coord[2] = ((String)(coord[2])).trim();
-        coord[3] = ((String)(coord[3])).trim();
-        coord[4] = ((String)(coord[4])).trim();
-        coord[5] = ((String)(coord[5])).trim();
-        coord[6] = ((String)(coord[6])).trim();
-        coord[7] = ((String)(coord[7])).trim();
+            String[] lexesWithCoordMas = lexesWithCoord.toArray(new String[lexesWithCoord.size()]);
 
-        return coord;
+            GetCoordsAsynk getCoordsAsynk = new GetCoordsAsynk();
+            getCoordsAsynk.execute(lexesWithCoordMas);
+
+            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get(500000, TimeUnit.MICROSECONDS);
+
+
+
+//            for(int i = 0; i < eventWithLexes.size(); i++){
+//                int indx = eventWithLexes.get(i).lexemes.contains(lexForRedir);
+//                while(indx >= 0){
+//                    eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
+//                    indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+//                }
+//            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Coordinate ParseCoord(String fullText){
+
+        double lonSign = 1;
+        double latSign = 1;
+        double longitude = 0;
+        double latitude = 0;
+
+        int x = 0;//begin
+        int y = 0;//end
+        int z = 0;//=
+
+
+
+
+        x = fullText.indexOf("lat_dir");
+        if(x < 0)
+            latSign = -1;
+        else{
+            y = fullText.indexOf("|", x);
+            z = fullText.indexOf("=", x);
+
+            String dir = fullText.substring(z, y);
+            dir = dir.trim();
+            if(dir == "S")
+                latSign = -1;
+            else
+                latSign = 1;
+        }
+
+        x = fullText.indexOf("lon_dir ");
+        if(x < 0)
+            lonSign = -1;
+        else{
+            y = fullText.indexOf("|", x);
+            z = fullText.indexOf("=", x);
+
+            String dir = fullText.substring(z, y);
+            dir = dir.trim();
+            if(dir == "W")
+                lonSign = -1;
+            else
+                lonSign = 1;
+        }
+
+
+
+
+        x = fullText.indexOf("lat_deg");
+        if(x >= 0){
+            y = fullText.indexOf("|", x);
+            z = fullText.indexOf("=", x);
+
+            String deg = fullText.substring(z, y);
+            deg = deg.trim();
+            if(deg != "") {
+                double degInt = Double.parseDouble(deg);
+                latitude += degInt;
+            }
+        }
+        x = fullText.indexOf("lat_min");
+        if(x >= 0){
+            y = fullText.indexOf("|", x);
+            z = fullText.indexOf("=", x);
+
+            String min = fullText.substring(z, y);
+            min = min.trim();
+            if(min != "") {
+                double minInt = Double.parseDouble(min);
+                latitude += minInt/60;
+            }
+        }
+        x = fullText.indexOf("lat_sec");
+        if(x >= 0){
+            y = fullText.indexOf("|", x);
+            z = fullText.indexOf("=", x);
+
+            String sec = fullText.substring(z, y);
+            sec = sec.trim();
+            if(sec != "") {
+                double secInt = Double.parseDouble(sec);
+                latitude += secInt/3600;
+            }
+        }
+
+        latitude *= latSign;
+
+
+
+
+        x = fullText.indexOf("lon_deg");
+        if(x >= 0){
+            y = fullText.indexOf("|", x);
+            z = fullText.indexOf("=", x);
+
+            String deg = fullText.substring(z, y);
+            deg = deg.trim();
+            if(deg != "") {
+                double degInt = Double.parseDouble(deg);
+                longitude += degInt;
+            }
+        }
+        x = fullText.indexOf("lon_min");
+        if(x >= 0){
+            y = fullText.indexOf("|", x);
+            z = fullText.indexOf("=", x);
+
+            String min = fullText.substring(z, y);
+            min = min.trim();
+            if(min != "") {
+                double minInt = Double.parseDouble(min);
+                longitude += minInt/60;
+            }
+        }
+        x = fullText.indexOf("lon_sec");
+        if(x >= 0){
+            y = fullText.indexOf("|", x);
+            z = fullText.indexOf("=", x);
+
+            String sec = fullText.substring(z, y);
+            sec = sec.trim();
+            if(sec != "") {
+                double secInt = Double.parseDouble(sec);
+                longitude += secInt/3600;
+            }
+        }
+
+        longitude *= lonSign;
+
+//        int lat_dir_indx; int lat_deg_indx; int lat_min_indx; int lat_sec_indx;
+//        int lon_dir_indx; int lon_deg_indx; int lon_min_indx; int lon_sec_indx;
+//
+//        int lat_dir_indx_end; int lat_deg_indx_end; int lat_min_indx_end; int lat_sec_indx_end;
+//        int lon_dir_indx_end; int lon_deg_indx_end; int lon_min_indx_end; int lon_sec_indx_end;
+//
+//        lat_dir_indx = fullText.indexOf("lat_dir");
+//        lat_deg_indx = fullText.indexOf("lat_deg");
+//        lat_min_indx = fullText.indexOf("lat_min");
+//        lat_sec_indx = fullText.indexOf("lat_sec");
+//        lon_dir_indx = fullText.indexOf("lon_dir");
+//        lon_deg_indx = fullText.indexOf("lon_deg");
+//        lon_min_indx = fullText.indexOf("lon_min");
+//        lon_sec_indx = fullText.indexOf("lon_sec");
+//        if(lat_dir_indx >= 0)
+//            lat_dir_indx_end = fullText.indexOf("|", lat_dir_indx + 9);
+//        lat_deg_indx_end = fullText.indexOf("|", lat_deg_indx + 9);
+//        lat_min_indx_end = fullText.indexOf("|", lat_min_indx + 9);
+//        lat_sec_indx_end = fullText.indexOf("|", lat_sec_indx + 9);
+//        if(lon_dir_indx >= 0)
+//            lon_dir_indx_end = fullText.indexOf("|", lon_dir_indx + 9);
+//        lon_deg_indx_end = fullText.indexOf("|", lon_deg_indx + 9);
+//        lon_min_indx_end = fullText.indexOf("|", lon_min_indx + 9);
+//        lon_sec_indx_end = fullText.indexOf("|", lon_sec_indx + 9);
+//
+////        if(lat_dir_indx >= 0)
+////            coord[0] = fullText.substring(lat_dir_indx, lat_dir_indx_end);
+////        else coord[0] = "N";
+//        coord[1] = fullText.substring(lat_deg_indx, lat_deg_indx_end);
+//        coord[2] = fullText.substring(lat_min_indx, lat_min_indx_end);
+//        coord[3] = fullText.substring(lat_sec_indx, lat_sec_indx_end);
+////        if(lon_dir_indx != -1)
+////            coord[4] = fullText.substring(lon_dir_indx, lon_dir_indx_end);
+////        else coord[4] = "E";
+//        coord[5] = fullText.substring(lon_deg_indx, lon_deg_indx_end);
+//        coord[6] = fullText.substring(lon_min_indx, lon_min_indx_end);
+//        coord[7] = fullText.substring(lon_sec_indx, lon_sec_indx_end);
+//
+//        coord[0] = ((String)(coord[0])).trim();
+//        coord[1] = ((String)(coord[1])).trim();
+//        coord[2] = ((String)(coord[2])).trim();
+//        coord[3] = ((String)(coord[3])).trim();
+//        coord[4] = ((String)(coord[4])).trim();
+//        coord[5] = ((String)(coord[5])).trim();
+//        coord[6] = ((String)(coord[6])).trim();
+//        coord[7] = ((String)(coord[7])).trim();
+
+        return new Coordinate(latitude, longitude);
     }
 
     private void ParseEvent(ArrayMap<Integer, String> eventsByYear){

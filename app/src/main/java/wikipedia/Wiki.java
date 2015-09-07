@@ -1,6 +1,7 @@
 package wikipedia;
 
 import android.support.v4.util.ArrayMap;
+import com.chronicle.app.Coordinate;
 import org.json.JSONStringer;
 
 import java.io.BufferedReader;
@@ -120,6 +121,26 @@ public class Wiki implements Serializable{
         String temp = fetch(url, "getPageText");
         log(Level.INFO, "getPageText", "Successfully retrieved text of " + title);
         return temp;
+    }
+
+    public Coordinate getCoordForPlace(String place){
+
+        Coordinate coordinate = new Coordinate();
+
+        String url = null;
+        try {
+            url = base + URLEncoder.encode(normalize(place), "UTF-8") + "&action=raw";
+            String temp = fetch(url, "getCoordForPlace");
+
+            if(temp != null & temp != ""){
+
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        return coordinate;
     }
 
     protected String fetch(String url, String caller) throws IOException
@@ -245,6 +266,7 @@ public class Wiki implements Serializable{
             u.setRequestProperty("Accept-encoding", "gzip");
         u.setRequestProperty("User-Agent", useragent);
     }
+
 //
 //    private void grabCookies(URLConnection u)
 //    {
@@ -283,6 +305,129 @@ public class Wiki implements Serializable{
         return Long.parseLong(IDString);
     }
 
+    public String getRedirectForPage(String title) {
+
+        String url = null;
+        try {
+            url = base + URLEncoder.encode(normalize(title), "UTF-8") + "&action=raw";
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String temp = null;
+        try {
+            temp = fetch(url, "getRedirectForPage");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        String addressToRedirect = null;
+
+        int x = temp.indexOf("#REDIRECT [[");
+        int y = 0;
+
+        if(x >= 0){
+            x += 12;
+            y = temp.indexOf("]]", x);
+            addressToRedirect = temp.substring(x, y);
+        }
+        else{
+            x = temp.indexOf("#перенаправление [[");
+            if(x >= 0){
+                x += 19;
+                y = temp.indexOf("]]", x);
+                addressToRedirect = temp.substring(x, y);
+            }
+        }
+
+        return addressToRedirect;
+    }
+
+    public ArrayList<String> getTitlePageWithCoordTemplate(ArrayList<String> titles){
+        ArrayList<String> titleWithCoord = new ArrayList<String>();
+
+        StringBuilder url = new StringBuilder(query);
+        url.append("prop=templates&tltemplates=Template:Coord&titles=");
+
+        for(String title : titles){
+            url.append(title + "|");
+        }
+
+        try {
+            String line = fetch(url.toString(), "getTitlePageWithCoordTemplate");
+
+            int x = 0;
+            int y = 0;
+            int xBracket = 0;
+            int start = 0;
+
+            x = line.indexOf("title\": \"", start) + 10;
+
+            while (x >= 9){
+                xBracket = line.indexOf("}", x);
+
+                if(line.substring(x, xBracket).contains("\"title\": \"\\u0428\\u0430\\u0431\\u043b\\u043e\\u043d:Coord\"")){
+                    y = line.indexOf("\"", x);
+                    if (x != y) {
+                        titleWithCoord.add(line.substring(x, y));
+                    }
+                }
+
+                x = xBracket;
+
+                x = line.indexOf("title\": \"", x) + 10;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return titleWithCoord;
+    }
+
+    public ArrayList<String> getTitlePageWithRedirect(ArrayList<String> titles){
+
+        ArrayList<String> titleWithRedirect = new ArrayList<String>();
+
+        StringBuilder url = new StringBuilder(query);
+        url.append("prop=info&titles=");
+
+        for(String title : titles){
+            url.append(title + "|");
+        }
+
+        try {
+            String line = fetch(url.toString(), "getTitlePageWithRedirect");
+
+            int x = 0;
+            int y = 0;
+            int xBracket = 0;
+            int start = 0;
+
+            x = line.indexOf("title\": \"", start) + 10;
+
+            while (x != 9) {
+
+                xBracket = line.indexOf("}", x);
+
+                if(line.substring(x, xBracket).contains("\"redirect\":")){
+                    y = line.indexOf("\"", x);
+                    if (x != y) {
+                        titleWithRedirect.add(line.substring(x, y));
+                    }
+                }
+
+                x = xBracket;
+
+                x = line.indexOf("title\": \"", x) + 10;
+
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return titleWithRedirect;
+    }
+
     public ArrayMap<Integer, Long> getPagesRevId(ArrayList<String> pages){
 
         ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
@@ -309,9 +454,9 @@ public class Wiki implements Serializable{
 
             x = line.indexOf("title\": \"", start) + 10;
 
-            while (x != -1) {
+            while (x != 9) {
 
-                if (x == -1)
+                if (x == 9)
                     continue;
 
                 y = line.indexOf("\"", x);
