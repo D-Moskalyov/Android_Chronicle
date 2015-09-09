@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="google_play_services_version">7.5.0</string>
-    <string name="firstCenturyAC">21</string>
+    <integer name="firstCenturyAC" format="integer" type="dimen">21</integer>
 </resources>

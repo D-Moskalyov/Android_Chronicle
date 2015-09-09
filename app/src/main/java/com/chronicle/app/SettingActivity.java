@@ -17,7 +17,7 @@ import java.util.Objects;
 public class SettingActivity extends Activity {
 
     private boolean scrolling = false;
-    private int indexOfFirstCenturyAC = R.string.firstCenturyAC - 1;
+    private int indexOfFirstCenturyAC = R.integer.firstCenturyAC - 1;
     SharedPreferences mySharedPreferences;
 
     WheelView centuryStart = null;

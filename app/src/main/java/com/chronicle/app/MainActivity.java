@@ -64,7 +64,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     String eventItem;
     List<String> wordBaseForms;
     char noun = 'С';
-    private int firstCenturyAC = R.string.firstCenturyAC;
+    private int firstCenturyAC;
     int centuryStart;
     int centuryFinish;
     int yearStart;
@@ -77,9 +77,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     SimpleDateFormat dateFormat;
 
-    GetPageAsync getPageAsync;
-    GetPageRevIDAsync getPageRevIDAsync;
-    GetPageTemplatesAsync getPageTemplatesAsync;
+    //GetPageAsync getPageAsync;
+    //GetPageRevIDAsync getPageRevIDAsync;
+    //GetPageTemplatesAsync getPageTemplatesAsync;
     LocationManager locationManager;
     ClusterManager<Coordinate> mClusterManager;
 
@@ -88,6 +88,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main_layout);
+        firstCenturyAC = (int) getResources().getInteger(R.integer.firstCenturyAC);
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
 
@@ -99,18 +100,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
+        dbHelper = new DBHelper(this);
+
         InitClusterer();
-        onMapReady(map);
+        //onMapReady(map);
 
         wikipedia = new Wiki();
-
-        mainButton = (Button) this.findViewById(R.id.settingsButton);
-        mainButton.setText("main");
 
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
 
 
-        String jsn = StringEscapeUtils.unescapeJava("\\u041a\\u0438\\u0435\\u0432\\");
+        //String jsn = StringEscapeUtils.unescapeJava("\\u041a\\u0438\\u0435\\u0432\\");
 
 
 //        LuceneMorphology luceneMorph = null;
@@ -150,9 +150,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        }
 
 
-
-
-
         int centuryStart = settings.getInt("centStartIndx", 0);
         int centuryFinish = settings.getInt("centFinishIndx", 0);
         int yearStart = settings.getInt("yearStartIndx", 0);
@@ -174,16 +171,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             finishYEAR = (centuryFinish - firstCenturyAC + 1) * 100 + yearFinish;
         }
 
+        mainButton = (Button) this.findViewById(R.id.settingsButton);
+        mainButton.setText(startYEAR + " - " + finishYEAR);
+
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-        Cursor cursor = db.query("Page", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
+        Cursor cursor = db.query("Pages", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
                 new String[]{Integer.toString(startYEAR, finishYEAR)}, null, null, null);
 
         ArrayList<Integer> listForFirstInit = new ArrayList<Integer>();
         ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
         ArrayList<Integer> listForNotUpdate = new ArrayList<Integer>();
 
-        if(cursor == null){//ни одной записи
+        if(cursor == null || cursor.getCount() == 0){//ни одной записи
             for(int _year = startYEAR; _year <= finishYEAR; _year++) {
                 listForFirstInit.add(_year);
             }
@@ -232,18 +232,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //            GetPageAsync getPageAsync = new GetPageAsync();
 //            getPageAsync.execute(yearForFirstInit);
 //        }
-
-        Integer[] listForFirstInitMas = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
-        getPageAsync.execute(listForFirstInitMas);
+        if(listForFirstInit != null & listForFirstInit.size() != 0) {
+            Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
+            GetPageAsync getPageAsync = new GetPageAsync();
+            getPageAsync.execute(masForFirstInit);
+        }
 //
 //        for(int yearForUpdate : listForNotUpdate) {
 //            GetPageRevIDAsync getPageRevIDAsync = new GetPageRevIDAsync();
 //            getPageRevIDAsync.execute(yearForUpdate);
 //        }
 
-        Integer[] listForNotUpdateMas = listForNotUpdate.toArray(new Integer[listForNotUpdate.size()]);
-        getPageRevIDAsync.execute(listForNotUpdateMas);
-
+        if(listForUpdate != null & listForUpdate.size() != 0) {
+            Integer[] listForNotUpdateMas = listForNotUpdate.toArray(new Integer[listForUpdate.size()]);
+            GetPageRevIDAsync getPageRevIDAsync = new GetPageRevIDAsync();
+            getPageRevIDAsync.execute(listForNotUpdateMas);
+        }
 
 
         Log.d(LOG_TAG, "--- onCreate main ---");
@@ -294,9 +298,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(GoogleMap map) {
-        map.addMarker(new MarkerOptions()
-                .position(new LatLng(0, 0))
-                .title("Marker"));
+//        map.addMarker(new MarkerOptions()
+//                .position(new LatLng(0, 0))
+//                .title("Marker"));
     }
 
     @Override
@@ -755,17 +759,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 rawWord = rawWord.toLowerCase();
                 try {
                     wordBaseForms = luceneMorph.getMorphInfo(rawWord);
-                }catch (WrongCharaterException e){
-                    e.printStackTrace();
-                }
-                if(wordBaseForms != null) {
-                    int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
-                    String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
-                    char pOS = partOfSpeach.charAt(0);
 
-                    if(pOS == noun){
-                        lex = wordBaseForms.get(0).substring(0, pos - 3);
-                        lexemes.add(lex);
+                    if(wordBaseForms != null) {
+                        int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
+                        String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
+                        char pOS = partOfSpeach.charAt(0);
+
+                        if(pOS == noun){
+                            lex = wordBaseForms.get(0).substring(0, pos - 3);
+                            lexemes.add(lex);
 //                        getPageTemplatesAsync = new GetPageTemplatesAsync();
 //                        String utf8lex = "";
 //                        try {
@@ -774,8 +776,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //                            e.printStackTrace();
 //                        }
 //                        getPageTemplatesAsync.execute(utf8lex);
+                        }
                     }
+                }catch (WrongCharaterException e){
+                    e.printStackTrace();
                 }
+
 
             }
 
@@ -853,6 +859,21 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get(500000, TimeUnit.MICROSECONDS);
 
 
+
+            for(int i = 0; i <= eventWithLexes.size(); i++){
+                ArrayList<String> lexesFromEvent = eventWithLexes.get(i).lexemes;
+
+                for(String lexFromEvent : lexesFromEvent){
+
+                    int ind = placesWithCoord.indexOfKey(lexFromEvent);
+                    if(ind >= 0){
+                        eventWithLexes.get(i).evntModel.coord = placesWithCoord.valueAt(ind);
+
+                        break;
+                    }
+                }
+
+            }
 
 //            for(int i = 0; i < eventWithLexes.size(); i++){
 //                int indx = eventWithLexes.get(i).lexemes.contains(lexForRedir);
@@ -1117,7 +1138,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             eventItem = TrimHooks(eventItem);
                         }
 
-                        eventList.add(new EventModel(eventItem));
+                        eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
 
                     } else {
                         eventItem = events.substring(startEv + 4, finishEv - 3) + " — ";
@@ -1179,14 +1200,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         db = dbHelper.getWritableDatabase();
 
-        Cursor cursor = db.query("Event", new String[]{"year", "text"}, "year >= ? and year <= ?",
+        Cursor cursor = db.query("Events", new String[]{"year", "event"}, "year >= ? and year <= ?",
                 new String[]{Integer.toString(yearStart, yearFinish)}, null, null, null);
 
         ArrayList<EventModel> eventsFromDB = new ArrayList<EventModel>();
         //ArrayList<EventModel> eventsToDelFromDB = new ArrayList<EventModel>();
         ArrayList<EventModel> eventsToParseLex = new ArrayList<EventModel>();
 
-        if(cursor == null){//ни одной записи
+        if(cursor == null || cursor.getCount() == 0){//ни одной записи
             eventsToParseLex.addAll(eventList);
         }
 
@@ -1197,6 +1218,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 eventsFromDB.add(new EventModel(textFromDB, yearFromDB));
             } while (cursor.moveToNext());
+
+            for(EventModel evntMod : eventList){
+                if (!(eventsFromDB.contains(evntMod))){//возможно не будет работать
+                    eventsToParseLex.add(evntMod);
+                }
+            }
         }
         cursor.close();
 
@@ -1208,11 +1235,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        for(EventModel evntMod : eventList){
-            if (!(eventsFromDB.contains(evntMod))){//возможно не будет работать
-                eventsToParseLex.add(evntMod);
-            }
-        }
 
         dbHelper.close();
 
@@ -1288,16 +1310,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onCreate(SQLiteDatabase db) {
             Log.d(LOG_TAG, "--- onCreate ---");
-            db.execSQL("create table Page " +
-                    "(id integer primary key autoincrement, " +
-                    "year integer not null unique, " + "revisionID integer, " + "lastUpdate text)");
+            db.execSQL("create table Pages " +
+                    "(year integer not null unique, " + "revisionID integer, " + "lastUpdate text)");
 
-            db.execSQL("create table Event " +
-                    "(id integer primary key autoincrement, " +
-                    "lat_dir text, " + "lon_dir text, " +
-                    "lat_deg integer, " + "lon_deg integer, " +
-                    "lat_min integer, " + "lon_min integer, " +
-                    "lat_sec integer, " + "lon_sec integer)");
+            db.execSQL("create table Events " +
+                    "(year integer, " + "event text, " +
+                    "latitude double, " + "longitude double)");
         }
 
         @Override
