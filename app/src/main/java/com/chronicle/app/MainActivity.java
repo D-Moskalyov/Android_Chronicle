@@ -119,7 +119,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        } catch (IOException e) {
 //            e.printStackTrace();
 //        }
-//        String _text = "Бостон";
+//        String _text = "Рима";
 //
 //        _text = _text.toLowerCase();
 //        //_textUTF8 = _textUTF8.toLowerCase();
@@ -128,6 +128,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        }catch (WrongCharaterException e){
 //            e.printStackTrace();
 //        }
+//
+//        List<String> fds = wordBaseForms;
 //        if(wordBaseForms != null) {
 //            int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
 //            String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
@@ -688,7 +690,24 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         protected ArrayList<String> doInBackground(String... params) {
 
             ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
-            ArrayList<String> titleWithRedirect = wikipedia.getTitlePageWithRedirect(paramsList);
+            HashSet<String> paramsSet = new HashSet<String>();
+            ArrayList<String> titleWithRedirect = new ArrayList<String>();
+
+            int sizeParamsList = paramsList.size();
+            int rowCount = sizeParamsList / 50;
+            if(paramsList.size() % 50 != 0)
+                rowCount++;
+
+            for(int i = 0; i < rowCount; i++){
+                for(int j = 1; j <= 50 & sizeParamsList > i * 50 + j; j++){
+                    paramsSet.add(paramsList.get(i * 50 + j));
+                }
+
+                titleWithRedirect.addAll(wikipedia.getTitlePageWithRedirect(paramsSet));
+                paramsSet.clear();
+            }
+            //HashSet<String> paramsSet = new HashSet<String>(paramsList);
+
 
             for(int i = 0; i < titleWithRedirect.size(); i++){
                 titleWithRedirect.set(i, StringEscapeUtils.unescapeJava(titleWithRedirect.get(i)));
@@ -804,20 +823,25 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         getPageRedirectAsync.execute(rawLexMas);
 
         try {
-            ArrayList<String> lexForRedirect = getPageRedirectAsync.get(50000, TimeUnit.MICROSECONDS);
+            ArrayList<String> lexForRedirect = getPageRedirectAsync.get(10000, TimeUnit.MILLISECONDS);
 
             for(String lexForRedir : lexForRedirect){
                 GetAddressPageForRedirectAsync getAddressPageForRedirectAsync =
                         new GetAddressPageForRedirectAsync();
                 getAddressPageForRedirectAsync.execute(lexForRedir);
-                String lexToRedir = getAddressPageForRedirectAsync.get(50000, TimeUnit.MICROSECONDS);
+                String lexToRedir = getAddressPageForRedirectAsync.get(5000, TimeUnit.MILLISECONDS);
+
+                lexToRedir = lexToRedir.toLowerCase();
+                lexForRedir = lexForRedir.toLowerCase();
 
                 for(int i = 0; i < eventWithLexes.size(); i++){
-                    int indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
-                    while(indx >= 0){
-                        eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
-                        indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
-                    }
+
+                        int indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                        while (indx >= 0) {
+                            eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
+                            indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                        }
+
                 }
             }
 
@@ -849,14 +873,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         getPageTemplatesAsync.execute(rawLexMas);
 
         try {
-            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get(50000, TimeUnit.MICROSECONDS);
+            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get(50000, TimeUnit.MILLISECONDS);
 
             String[] lexesWithCoordMas = lexesWithCoord.toArray(new String[lexesWithCoord.size()]);
 
             GetCoordsAsynk getCoordsAsynk = new GetCoordsAsynk();
             getCoordsAsynk.execute(lexesWithCoordMas);
 
-            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get(500000, TimeUnit.MICROSECONDS);
+            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get(500000, TimeUnit.MILLISECONDS);
 
 
 

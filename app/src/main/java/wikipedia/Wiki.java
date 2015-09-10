@@ -14,6 +14,7 @@ import java.net.URLEncoder;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -337,6 +338,14 @@ public class Wiki implements Serializable{
                 y = temp.indexOf("]]", x);
                 addressToRedirect = temp.substring(x, y);
             }
+            else{
+                x = temp.indexOf("#redirect [[");
+                if(x >= 0){
+                    x += 12;
+                    y = temp.indexOf("]]", x);
+                    addressToRedirect = temp.substring(x, y);
+                }
+            }
         }
 
         return addressToRedirect;
@@ -383,7 +392,7 @@ public class Wiki implements Serializable{
         return titleWithCoord;
     }
 
-    public ArrayList<String> getTitlePageWithRedirect(ArrayList<String> titles){
+    public ArrayList<String> getTitlePageWithRedirect(HashSet<String> titles){
 
         ArrayList<String> titleWithRedirect = new ArrayList<String>();
 
@@ -402,9 +411,9 @@ public class Wiki implements Serializable{
             int xBracket = 0;
             int start = 0;
 
-            x = line.indexOf("title\": \"", start) + 10;
+            x = line.indexOf("\"title\":\"", start) + 9;
 
-            while (x != 9) {
+            while (x >= 9) {
 
                 xBracket = line.indexOf("}", x);
 
@@ -417,7 +426,7 @@ public class Wiki implements Serializable{
 
                 x = xBracket;
 
-                x = line.indexOf("title\": \"", x) + 10;
+                x = line.indexOf("\"title\":\"", x) + 9;
 
             }
 
