@@ -358,7 +358,11 @@ public class Wiki implements Serializable{
         url.append("prop=templates&tltemplates=Template:Coord&titles=");
 
         for(String title : titles){
-            url.append(title + "|");
+            try {
+                url.append(URLEncoder.encode(normalize(title) + "|"));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         try {
@@ -369,12 +373,12 @@ public class Wiki implements Serializable{
             int xBracket = 0;
             int start = 0;
 
-            x = line.indexOf("title\": \"", start) + 10;
+            x = line.indexOf("\"title\":\"", start) + 9;
 
             while (x >= 9){
                 xBracket = line.indexOf("}", x);
 
-                if(line.substring(x, xBracket).contains("\"title\": \"\\u0428\\u0430\\u0431\\u043b\\u043e\\u043d:Coord\"")){
+                if(line.substring(x, xBracket).contains("\"title\":\"\\u0428\\u0430\\u0431\\u043b\\u043e\\u043d:Coord\"")){
                     y = line.indexOf("\"", x);
                     if (x != y) {
                         titleWithCoord.add(line.substring(x, y));
@@ -383,7 +387,7 @@ public class Wiki implements Serializable{
 
                 x = xBracket;
 
-                x = line.indexOf("title\": \"", x) + 10;
+                x = line.indexOf("\"title\":\"", x) + 9;
             }
         } catch (IOException e) {
             e.printStackTrace();

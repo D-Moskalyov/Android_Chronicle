@@ -605,7 +605,26 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         protected ArrayList<String> doInBackground(String... strs) {
 
             ArrayList<String> lexesList = new ArrayList<String>(Arrays.asList(strs));
-            ArrayList<String> titleWithCoordTemplate = wikipedia.getTitlePageWithCoordTemplate(lexesList);
+            //ArrayList<String> titleWithCoordTemplate = wikipedia.getTitlePageWithCoordTemplate(lexesList);
+
+
+            ArrayList<String> titleWithCoordTemplate = new ArrayList<String>();
+            ArrayList<String> tempList = new ArrayList<String>();
+
+            int sizeParamsList = lexesList.size();
+            int rowCount = sizeParamsList / 50;
+            if(lexesList.size() % 50 != 0)
+                rowCount++;
+
+            for(int i = 0; i < rowCount; i++){
+                for(int j = 1; j <= 50 & sizeParamsList > i * 50 + j; j++){
+                    tempList.add(lexesList.get(i * 50 + j));
+                }
+
+                titleWithCoordTemplate.addAll(wikipedia.getTitlePageWithCoordTemplate(tempList));
+                tempList.clear();
+            }
+
 
             for(int i = 0; i < titleWithCoordTemplate.size(); i++){
                 titleWithCoordTemplate.set(i, StringEscapeUtils.unescapeJava(titleWithCoordTemplate.get(i)));
