@@ -32,7 +32,22 @@ public class EventModel implements Comparable<EventModel>, Comparator<EventModel
 
     @Override
     public int compareTo(EventModel another) {
-        return coord.compareTo(another.coord);
+        if (another.coord == null) {
+            if (this.coord != null)
+                return 1;
+            if (this.year != another.year)
+                return this.year - another.year;
+            return this.text.compareTo(another.text);
+        }
+
+        if (this.coord == null)
+            return -1;
+        if (this.coord != another.coord)
+            return this.coord.compareTo(another.coord);
+        if (this.year != another.year)
+            return this.year - another.year;
+        return this.text.compareTo(another.text);
+
     }
 
     @Override

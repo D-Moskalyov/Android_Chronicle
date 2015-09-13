@@ -2,6 +2,8 @@ package wikipedia;
 
 import android.support.v4.util.ArrayMap;
 import com.chronicle.app.Coordinate;
+import com.google.android.gms.maps.model.LatLng;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.json.JSONStringer;
 
 import java.io.BufferedReader;
@@ -439,6 +441,68 @@ public class Wiki implements Serializable{
         }
 
         return titleWithRedirect;
+    }
+
+    public ArrayMap<String, LatLng> getCoordinateForPlaces(ArrayList<String> places){
+
+        ArrayMap<String, LatLng> titleWithLatLng = new ArrayMap<String, LatLng>();
+
+        StringBuilder url = new StringBuilder(query);
+        url.append("prop=coordinates&titles=");
+
+        for(String title : places){
+            url.append(title + "|");
+        }
+
+        try {
+            String line = fetch(url.toString(), "getCoordinateForPlaces");
+
+            int x = 0;
+            int y = 0;
+            String title = null;
+
+            int latIndx = 0;
+            int latEndIndx = 0;
+            int lonIndx = 0;
+            int lonEndIndx = 0;
+
+            int xBracket = 0;
+            int start = 0;
+
+            x = line.indexOf("\"title\":\"", start) + 9;
+
+            while (x >= 9) {
+
+                xBracket = line.indexOf("},", x);
+                if(xBracket == -1)
+                    xBracket = line.length() - 1;
+                if(line.substring(x, xBracket).contains("\"coordinates\":[")){
+                    latIndx = line.indexOf("\"lat\":", x);
+                    latEndIndx = line.indexOf(",", latIndx);
+
+                    lonIndx = line.indexOf("\"lon\":", x);
+                    lonEndIndx = line.indexOf(",", lonIndx);
+
+                    double lat = Double.parseDouble(line.substring(latIndx + 6, latEndIndx));
+                    double lon = Double.parseDouble(line.substring(lonIndx + 6, lonEndIndx));
+
+                    y = line.indexOf("\",", x);
+                    title = StringEscapeUtils.unescapeJava(line.substring(x, y));
+
+                    titleWithLatLng.put(title.toLowerCase(), new LatLng(lat, lon));
+                }
+
+                x = xBracket;
+
+                x = line.indexOf("\"title\":\"", x) + 9;
+
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return titleWithLatLng;
     }
 
     public ArrayMap<Integer, Long> getPagesRevId(ArrayList<String> pages){

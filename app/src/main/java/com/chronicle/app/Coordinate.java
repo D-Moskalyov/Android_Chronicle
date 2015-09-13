@@ -3,15 +3,24 @@ package com.chronicle.app;
 import com.google.android.gms.drive.query.SortableField;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.clustering.ClusterItem;
+import com.google.maps.android.clustering.ClusterManager;
 
 import java.util.Comparator;
 
 /**
- * Created by Дмитрий on 03.09.2015.
+ * Created by пїЅпїЅпїЅпїЅпїЅпїЅпїЅ on 03.09.2015.
  */
-public class Coordinate implements ClusterItem, Comparable<Coordinate> {
+public class Coordinate implements ClusterItem, Comparable<Coordinate>, ClusterManager.OnClusterItemClickListener<Coordinate> {
+    public LatLng getmPosition() {
+        return mPosition;
+    }
+
     private final LatLng mPosition;
 
+    @Override
+    public boolean onClusterItemClick(Coordinate item) {
+        return false;
+    }
 
     public Coordinate() {
         mPosition = null;
@@ -19,6 +28,10 @@ public class Coordinate implements ClusterItem, Comparable<Coordinate> {
 
     public Coordinate(double lat, double lng) {
         mPosition = new LatLng(lat, lng);
+    }
+
+    public Coordinate(LatLng latLng) {
+        mPosition = latLng;
     }
 
     @Override

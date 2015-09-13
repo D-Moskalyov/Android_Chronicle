@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.Bitmap;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -22,15 +23,23 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.os.Bundle;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 import com.google.android.gms.maps.*;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.MarkerManager;
+import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.DefaultClusterRenderer;
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.lang3.time.DateFormatUtils;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
+import org.apache.lucene.util.SortedVIntList;
 import org.json.JSONObject;
 import org.json.JSONTokener;
 import wikipedia.Wiki;
@@ -39,6 +48,7 @@ import org.apache.lucene.morphology.*;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
+import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -81,7 +91,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     //GetPageRevIDAsync getPageRevIDAsync;
     //GetPageTemplatesAsync getPageTemplatesAsync;
     LocationManager locationManager;
-    ClusterManager<Coordinate> mClusterManager;
+    ClusterManager<EventsMarker> mClusterManager;
+
+    List<PageModel> pagesForUdateDB;
 
     String LOG_TAG = "INF";
 
@@ -100,6 +112,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
+        pagesForUdateDB = new ArrayList<PageModel>();
+
         dbHelper = new DBHelper(this);
 
         InitClusterer();
@@ -108,48 +122,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         wikipedia = new Wiki();
 
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
-
-
-        //String jsn = StringEscapeUtils.unescapeJava("\\u041a\\u0438\\u0435\\u0432\\");
-
-
-//        LuceneMorphology luceneMorph = null;
-//        try {
-//            luceneMorph = new RussianLuceneMorphology();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//        String _text = "–има";
-//
-//        _text = _text.toLowerCase();
-//        //_textUTF8 = _textUTF8.toLowerCase();
-//        try {
-//            wordBaseForms = luceneMorph.getMorphInfo(_text);
-//        }catch (WrongCharaterException e){
-//            e.printStackTrace();
-//        }
-//
-//        List<String> fds = wordBaseForms;
-//        if(wordBaseForms != null) {
-//            int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
-//            String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
-//            char pOS = partOfSpeach.charAt(0);
-//
-//            if(pOS == noun){
-//                String lex = wordBaseForms.get(0).substring(0, pos - 3);
-//
-//                getPageTemplatesAsync = new GetPageTemplatesAsync();
-//                String utf8lex = "";
-//                try {
-//                    utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
-//                } catch (UnsupportedEncodingException e) {
-//                    e.printStackTrace();
-//                }
-//                getPageTemplatesAsync.execute(utf8lex);
-//
-//            }
-//
-//        }
 
 
         int centuryStart = settings.getInt("centStartIndx", 0);
@@ -185,14 +157,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
         ArrayList<Integer> listForNotUpdate = new ArrayList<Integer>();
 
-        if(cursor == null || cursor.getCount() == 0){//ни одной записи
+        if(cursor == null || cursor.getCount() == 0){
             for(int _year = startYEAR; _year <= finishYEAR; _year++) {
                 listForFirstInit.add(_year);
             }
         }
 
         else {
-
+            cursor.moveToFirst();
             do {
 
                 int yearFromDB = cursor.getInt(cursor.getColumnIndex("year"));
@@ -230,25 +202,42 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         cursor.close();
         dbHelper.close();
 
-//        for(int yearForFirstInit : listForFirstInit){
-//            GetPageAsync getPageAsync = new GetPageAsync();
-//            getPageAsync.execute(yearForFirstInit);
-//        }
         if(listForFirstInit != null & listForFirstInit.size() != 0) {
+            int count = listForFirstInit.size();
+            int rowCount = count / 50;
+            if(listForFirstInit.size() % 50 != 0)
+                rowCount++;
+
+            ArrayList<String> pages = new ArrayList<String>();
+
+            for(int i = 0; i < rowCount; i++){
+                for(int j = 0; j < 50 & count > i * 50 + j; j++){
+                    String year = String.valueOf(listForFirstInit.get(i * 50 + j)) + "_год";
+                    if (listForFirstInit.get(i * 50 + j) < 0) {
+                        year += "_до_н._э.";
+                        year = year.substring(1);
+                    }
+
+                    pages.add(year);
+                }
+            }
+
+            ArrayMap<Integer, Long> pagesWithID = wikipedia.getPagesRevId(pages);
+
+//            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+//            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+//            Date date = new Date();
+//            pagesForUdateDB.add(new PageModel(year, revIDFromWiki, dateFormat.format(date)));
+
             Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
             GetPageAsync getPageAsync = new GetPageAsync();
             getPageAsync.execute(masForFirstInit);
         }
-//
-//        for(int yearForUpdate : listForNotUpdate) {
-//            GetPageRevIDAsync getPageRevIDAsync = new GetPageRevIDAsync();
-//            getPageRevIDAsync.execute(yearForUpdate);
-//        }
 
         if(listForUpdate != null & listForUpdate.size() != 0) {
-            Integer[] listForNotUpdateMas = listForNotUpdate.toArray(new Integer[listForUpdate.size()]);
+            Integer[] masForUpdate = listForUpdate.toArray(new Integer[listForUpdate.size()]);
             GetPageRevIDAsync getPageRevIDAsync = new GetPageRevIDAsync();
-            getPageRevIDAsync.execute(listForNotUpdateMas);
+            getPageRevIDAsync.execute(masForUpdate);
         }
 
 
@@ -275,7 +264,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void InitClusterer(){
-        mClusterManager = new ClusterManager<Coordinate>(this, map);
+        mClusterManager = new ClusterManager<EventsMarker>(this, map);
+        mClusterManager.setRenderer(new EventRenderer());
         map.setOnCameraChangeListener(mClusterManager);
         map.setOnMarkerClickListener(mClusterManager);
 
@@ -322,20 +312,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return true;
     }
 
-
-    public void onClickPreferences(View view){
-//        Class c = Build.VERSION.SDK_INT <Build.VERSION_CODES.HONEYCOMB ?
-//                OldPreferenceActivity.class : FragmentPreferenceActivity.class;
-//        Intent i = new Intent(this, c);
-//        startActivityForResult(i, SHOW_PREFERENCES);
-
-//        Intent i = new Intent(this, OldPreferenceActivity.class);
-//        startActivityForResult(i, SHOW_PREFERENCES);
-
-        Intent i = new Intent(this, SettingActivity.class);
-        startActivityForResult(i, SHOW_PREFERENCES);
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == SHOW_PREFERENCES) {
@@ -357,11 +333,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        String intervalString = settings.getString("intervalString", "Set Interval");
 //        mainButton.setText(intervalString);
 //
-//        startDate = 1914;//значени€ из Preference
-//        finishDate = 1915;//значени€ из Preference
+//        startDate = 1914;//???????? ?? Preference
+//        finishDate = 1915;//???????? ?? Preference
 //
 //        Calendar thatDay = Calendar.getInstance();
-//        if(true) {//изменение дат
+//        if(true) {//????????? ???
 //            SQLiteDatabase db = dbHelper.getWritableDatabase();
 //
 //            Cursor cursor = db.query("Page", new String[]{"lastUpdate"}, "year = ?",
@@ -389,14 +365,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //
 //                //if(diff / (60 * 60 * 1000) > 24) {
 //                    getPageRevIDAsync = new GetPageRevIDAsync();
-//                    getPageRevIDAsync.execute(("1914_год"));
+//                    getPageRevIDAsync.execute(("1914_???"));
 //
 //
 //                //}
 //            }
 //
 //            else {
-//                //парсим и записываем в Ѕƒ
+//                //?????? ? ?????????? ? ??
 //            }
 //
 //            cursor.close();
@@ -414,6 +390,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+    public void onClickPreferences(View view){
+//        Class c = Build.VERSION.SDK_INT <Build.VERSION_CODES.HONEYCOMB ?
+//                OldPreferenceActivity.class : FragmentPreferenceActivity.class;
+//        Intent i = new Intent(this, c);
+//        startActivityForResult(i, SHOW_PREFERENCES);
+
+//        Intent i = new Intent(this, OldPreferenceActivity.class);
+//        startActivityForResult(i, SHOW_PREFERENCES);
+
+        Intent i = new Intent(this, SettingActivity.class);
+        startActivityForResult(i, SHOW_PREFERENCES);
+    }
+
 
     private LocationListener locationListener = new LocationListener() {
         @Override
@@ -424,10 +413,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
             if(provider.equals(locationManager.GPS_PROVIDER)){
-                //реакци€ на изменение
+                //??????? ?? ?????????
             }
             else if(provider.equals(locationManager.NETWORK_PROVIDER)){
-                //реакци€ на изменение
+                //??????? ?? ?????????
             }
         }
 
@@ -447,10 +436,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(location == null)
             return;
         if(location.getProvider().equals(locationManager.GPS_PROVIDER)){
-            //реакци€ на данные
+            //??????? ?? ??????
         }
         else if(location.getProvider().equals(locationManager.NETWORK_PROVIDER)){
-            //реакци€ на данные
+            //??????? ?? ??????
         }
 
     }
@@ -506,7 +495,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             for(int i = 0; i < result.size(); i++) {
                 if (!result.valueAt(i).contains("#перенаправление") &
-                        !result.valueAt(i).contains("#REDIRECT"))
+                        !result.valueAt(i).contains("#REDIRECT") &
+                        !result.valueAt(i).contains("#redirect"))
                     allEvntsByYear.put(result.keyAt(i), result.valueAt(i));
             }
 
@@ -520,17 +510,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             int count = params.length;
             long revId = 0;
 
-            ArrayList<String> pages = new ArrayList<String>();
-            //long totalSize = 0;
-            for (int i = 0; i < count; i++) {
-                String year = String.valueOf(params[i]) + "_год";
-                if (params[i] < 0) {
-                    year += "_до_н._э.";
-                    year = year.substring(1);
-                }
+            int rowCount = count / 50;
+            if(params.length % 50 != 0)
+                rowCount++;
 
-                pages.add(year);
-                //revId = wikipedia.getPageRevId(year);
+            ArrayList<String> pages = new ArrayList<String>();
+
+            for(int i = 0; i < rowCount; i++){
+                for(int j = 0; j < 50 & count > i * 50 + j; j++){
+                    String year = String.valueOf(params[i * 50 + j]) + "_год";
+                    if (params[i * 50 + j] < 0) {
+                        year += "_до_н._э.";
+                        year = year.substring(1);
+                    }
+
+                    pages.add(year);
+                }
             }
 
             ArrayMap<Integer, Long> pagesWithID = wikipedia.getPagesRevId(pages);
@@ -558,13 +553,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     do{
                         int year = cursor.getInt(cursor.getColumnIndex("year"));
                         long revID = cursor.getInt(cursor.getColumnIndex("revisionID"));
+                        long revIDFromWiki = pagesWithID.get(new Integer(year));
 
-                        if (pagesWithID.get(new Integer(year)) != new Long(revID)){
+                        if (revIDFromWiki != revID){
                             listForUpdate.add(new Integer(year));
-
                         }
-                        else{
-                            //берЄм из Ѕƒ
+                        else {
+                            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+                            Date date = new Date();
+                            pagesForUdateDB.add(new PageModel(year, revIDFromWiki, dateFormat.format(date)));
                         }
 
                     } while (cursor.moveToNext());
@@ -577,22 +575,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     GetPageAsync getPageAsync = new GetPageAsync();
                     getPageAsync.execute(listForUpdateMas);
 
-                    try {
-                        getPageAsync.get(50000, TimeUnit.MILLISECONDS);
-
-                        cv.put("lastUpdate", Calendar.getInstance().toString());
-                        db.update("Page", cv, "year >= ? and year <= ?",
-                                new String[]{String.valueOf(startDate), String.valueOf(finishDate)});
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    } catch (ExecutionException e) {
-                        e.printStackTrace();
-                    } catch (TimeoutException e) {
-                        e.printStackTrace();
-                    }
-                    finally {
+//                    try {
+//                        getPageAsync.get(50000, TimeUnit.MILLISECONDS);
+//
+//                        cv.put("lastUpdate", Calendar.getInstance().toString());
+//                        db.update("Page", cv, "year >= ? and year <= ?",
+//                                new String[]{String.valueOf(startDate), String.valueOf(finishDate)});
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    } catch (ExecutionException e) {
+//                        e.printStackTrace();
+//                    } catch (TimeoutException e) {
+//                        e.printStackTrace();
+//                    }
+//                    finally {
                         dbHelper.close();
-                    }
+                    //}
 
                 }
 
@@ -684,21 +682,33 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         protected ArrayMap<String, Coordinate> doInBackground(String... params) {
 
+            ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
             ArrayMap<String, Coordinate> placesWithCoord = new ArrayMap<String, Coordinate>();
+            ArrayMap<String, Coordinate> coord =  new ArrayMap<String, Coordinate>();
 
-            for(String place : params){
-                try {
-                    String fullText = wikipedia.getPageText(place);
+            //ArrayList<String> titleWithCoordTemplate = new ArrayList<String>();
+            ArrayList<String> tempList = new ArrayList<String>();
 
-                    Coordinate coordinate = ParseCoord(fullText);
+            int sizeParamsList = paramsList.size();
+            int rowCount = sizeParamsList / 50;
+            if(paramsList.size() % 50 != 0)
+                rowCount++;
 
-                    placesWithCoord.put(place, coordinate);
-                } catch (IOException e) {
-                    e.printStackTrace();
+            for(int i = 0; i < rowCount; i++){
+                for(int j = 0; j <= 50 & sizeParamsList > i * 50 + j; j++){
+                    tempList.add(paramsList.get(i * 50 + j));
                 }
 
-            }
+                ArrayMap<String, LatLng> latLng = wikipedia.getCoordinateForPlaces(tempList);
 
+                for(int j = 0; j < latLng.size(); j++){
+                    placesWithCoord.put(latLng.keyAt(j), new Coordinate(latLng.valueAt(j)));
+                }
+
+                //placesWithCoord.putAll((Map<? extends String, ? extends Coordinate>) coord);
+                tempList.clear();
+                coord.clear();
+            }
 
             return  placesWithCoord;
         }
@@ -742,6 +752,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return wikipedia.getRedirectForPage(params[0]);
         }
     }
+
 
 
     private void ParseLexFromEvents(ArrayList<EventModel> events){
@@ -793,9 +804,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             for(String rawWord : rawWords){
                 String lex = "";
 
-
                 rawWord = rawWord.toLowerCase();
-                try {
+                try {//из здесь
                     wordBaseForms = luceneMorph.getMorphInfo(rawWord);
 
                     if(wordBaseForms != null) {
@@ -903,7 +913,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-            for(int i = 0; i <= eventWithLexes.size(); i++){
+            for(int i = 0; i < eventWithLexes.size(); i++){
                 ArrayList<String> lexesFromEvent = eventWithLexes.get(i).lexemes;
 
                 for(String lexFromEvent : lexesFromEvent){
@@ -918,13 +928,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             }
 
-//            for(int i = 0; i < eventWithLexes.size(); i++){
-//                int indx = eventWithLexes.get(i).lexemes.contains(lexForRedir);
-//                while(indx >= 0){
-//                    eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
-//                    indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
-//                }
-//            }
+
+            SortedSet<EventModel> events = new TreeSet<EventModel>();
+            for(EventWithLex eventWithLex : eventWithLexes){
+                events.add(eventWithLex.evntModel);
+                //mClusterManager.setOnClusterItemClickListener(eventWithLex.evntModel.coord);
+            }
+            //записать в Ѕƒ
+            MakeMarkers(events);
 
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -933,6 +944,74 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         } catch (TimeoutException e) {
             e.printStackTrace();
         }
+    }
+
+    private void MakeMarkers(SortedSet<EventModel> events){
+
+        ArrayList<EventsMarker> eventsMarkers = new ArrayList<EventsMarker>();
+
+        EventsMarker eventsMarker = new EventsMarker(new LatLng(181,181));
+        EventWithYear eventWithYear = null;
+
+        for(EventModel eventModel : events){
+            if(eventModel.coord != null) {
+                if (eventModel.coord.getmPosition() == eventsMarker.coordinate) {
+                    eventWithYear = new EventWithYear(eventModel.text, eventModel.year);
+                    eventsMarkers.get(eventsMarkers.size() - 1).addEventWithYear(eventWithYear);
+                } else {
+                    eventsMarker = new EventsMarker(eventModel.coord.getmPosition());
+                    eventWithYear = new EventWithYear(eventModel.text, eventModel.year);
+                    eventsMarker.addEventWithYear(eventWithYear);
+                    eventsMarkers.add(new EventsMarker(eventsMarker));
+                }
+
+            }
+        }
+
+        for(int i = 0; i < eventsMarkers.size(); i++) {
+            switch (eventsMarkers.get(i).eventWithYears.size()) {
+                case 1:
+                    eventsMarkers.get(i).iconID = R.drawable.number_1;
+                    break;
+                case 2:
+                    eventsMarkers.get(i).iconID = R.drawable.number_2;
+                    break;
+                case 3:
+                    eventsMarkers.get(i).iconID = R.drawable.number_3;
+                    break;
+                case 4:
+                    eventsMarkers.get(i).iconID = R.drawable.number_4;
+                    break;
+                case 5:
+                    eventsMarkers.get(i).iconID = R.drawable.number_5;
+                    break;
+                case 6:
+                    eventsMarkers.get(i).iconID = R.drawable.number_6;
+                    break;
+                case 7:
+                    eventsMarkers.get(i).iconID = R.drawable.number_7;
+                    break;
+                case 8:
+                    eventsMarkers.get(i).iconID = R.drawable.number_8;
+                    break;
+                case 9:
+                    eventsMarkers.get(i).iconID = R.drawable.number_9;
+                    break;
+                case 10:
+                    eventsMarkers.get(i).iconID = R.drawable.number_10;
+                    break;
+
+                default:
+                    eventsMarkers.get(i).iconID = R.drawable.number_11;
+                    break;
+
+//            String path = "mapicons-numbers/number_" + eventsMarkers.get(i).eventWithYears.size() + ".png";
+//            eventsMarkers.get(i).pathToIcon = path;
+            }
+        }
+
+        mClusterManager.addItems(eventsMarkers);
+
     }
 
     private Coordinate ParseCoord(String fullText){
@@ -1115,10 +1194,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void ParseEvent(ArrayMap<Integer, String> eventsByYear){
 
-        //dbHelper = new DBHelper(this);
-
-        //List<String> eventList = new ArrayList<String>();
-
         List<EventModel> eventList = new ArrayList<EventModel>();
 
         String eventItem = null;
@@ -1142,11 +1217,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             startEv = events.indexOf("*");
             finishEv = events.indexOf("*", startEv + 1);
 
-            while (finishEv != -1) {//не последнее событие
+            while (finishEv != -1) {
 
                 if (finishEv - startEv != 1) {
 
-                    if (finishEv - startEv > 17) {//ещЄ что-то кроме даты
+                    if (finishEv - startEv > 17) {
                         eventItem = events.substring(startEv + 2, finishEv - 1);
 
                         int indxSlash = eventItem.indexOf("==");
@@ -1187,7 +1262,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         eventItem = events.substring(startEv + 4, finishEv - 3) + " Ч ";
                     }
 
-                } else {//несколько событий
+                } else {
 
                     startEv++;
                     finishEv = events.indexOf("*", startEv + 1);
@@ -1195,10 +1270,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     int indxDef = eventItem.indexOf(" Ч ");
 
                     if (indxDef != -1)
-                        eventItem = eventItem.substring(0, indxDef + 3) + //вз€ть дату из старого eventItem
+                        eventItem = eventItem.substring(0, indxDef + 3) +
                                 events.substring(startEv + 2, finishEv - 1);
                     else
-                        eventItem = eventItem + //вз€ть дату из старого eventItem
+                        eventItem = eventItem +
                                 events.substring(startEv + 2, finishEv - 1);
 
                     int indxSlash = eventItem.indexOf("==");
@@ -1250,11 +1325,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         //ArrayList<EventModel> eventsToDelFromDB = new ArrayList<EventModel>();
         ArrayList<EventModel> eventsToParseLex = new ArrayList<EventModel>();
 
-        if(cursor == null || cursor.getCount() == 0){//ни одной записи
+        if(cursor == null || cursor.getCount() == 0){
             eventsToParseLex.addAll(eventList);
         }
 
-        else {
+        else {//не проверено
             do {
                 int yearFromDB = cursor.getInt(cursor.getColumnIndex("year"));
                 String textFromDB = cursor.getString(cursor.getColumnIndex("text"));
@@ -1263,7 +1338,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             } while (cursor.moveToNext());
 
             for(EventModel evntMod : eventList){
-                if (!(eventsFromDB.contains(evntMod))){//возможно не будет работать
+                if (!(eventsFromDB.contains(evntMod))){
                     eventsToParseLex.add(evntMod);
                 }
             }
@@ -1271,8 +1346,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         cursor.close();
 
 
-        for(EventModel evntMod : eventsFromDB){
-            if (!(eventList.contains(evntMod))){//возможно не будет работать
+        for(EventModel evntMod : eventsFromDB){//не проверено
+            if (!(eventList.contains(evntMod))){
                 //eventsToDelFromDB.add(evntMod);
                 db.delete("Event", "year = ? and text = ?", new String[]{String.valueOf(evntMod.year), evntMod.text});
             }
@@ -1302,6 +1377,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        dbHelper.close();
     }
 
+
+
     private String PunctuationHook(String word){
 
         word = word.replace(" ", "");
@@ -1310,6 +1387,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         word = word.replace(":", "");
         word = word.replace(".", "");
         word = word.replace("...", "");
+        word = word.replace(")", "");
+        word = word.replace("(", "");
+        word = word.replace("Ч", "");
+        word = word.replace("\"", "");
+        word = word.replace("'", "");
 
         return  word;
     }
@@ -1364,6 +1446,36 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
+        }
+    }
+
+    private class EventRenderer extends DefaultClusterRenderer<EventsMarker> {
+        private final ImageView mImageView;
+        private final int mDimension;
+
+        public EventRenderer() {
+            super(getApplicationContext(), map, mClusterManager);
+
+            mImageView = new ImageView(getApplicationContext());
+            mDimension = (int) getResources().getDimension(R.dimen.custom_profile_image);
+            mImageView.setLayoutParams(new ViewGroup.LayoutParams(mDimension, mDimension));
+        }
+
+        @Override
+        protected void onBeforeClusterItemRendered(EventsMarker item, MarkerOptions markerOptions) {
+            mImageView.setImageResource(item.iconID);
+            markerOptions.icon(BitmapDescriptorFactory.fromResource(item.iconID)).title(item.coordinate.toString());
+        }
+
+        @Override
+        protected void onBeforeClusterRendered(Cluster<EventsMarker> cluster, MarkerOptions markerOptions) {
+            super.onBeforeClusterRendered(cluster, markerOptions);
+        }
+
+        @Override
+        protected boolean shouldRenderAsCluster(Cluster cluster) {
+            // Always render clusters.
+            return cluster.getSize() > 1;
         }
     }
 

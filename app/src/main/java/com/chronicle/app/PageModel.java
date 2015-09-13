@@ -1,5 +1,7 @@
 package com.chronicle.app;
 
+import android.graphics.pdf.PdfDocument;
+
 import java.util.Date;
 
 /**
@@ -8,5 +10,12 @@ import java.util.Date;
 public class PageModel {
     int year;
     long revID;
-    Date lastUpdate;
+    String lastUpdate;
+
+    public PageModel(int y, long r, String u){
+        year = y;
+        revID = r;
+        lastUpdate = u;
+    }
+
 }
