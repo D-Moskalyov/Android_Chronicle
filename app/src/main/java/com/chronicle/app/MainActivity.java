@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.graphics.Bitmap;
+import android.graphics.pdf.PdfDocument;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -59,10 +60,9 @@ import java.util.concurrent.TimeoutException;
 //implements OnMapReadyCallback
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
 
-
     MapFragment mapFragment = null;
     GoogleMap map = null;
-    Marker marker = null;
+    //Marker marker = null;
 
     //final String TAG = "myLogs";
     SharedPreferences settings;
@@ -71,12 +71,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     int startDate;
     int finishDate;
-    String eventItem;
+    //String eventItem;
     List<String> wordBaseForms;
     char noun = 'С';
     private int firstCenturyAC;
-    int centuryStart;
-    int centuryFinish;
+    //int centuryStart;
+    //int centuryFinish;
     int yearStart;
     int yearFinish;
 
@@ -93,7 +93,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     LocationManager locationManager;
     ClusterManager<EventsMarker> mClusterManager;
 
+    List<PageModel> pagesForIsertDB;
     List<PageModel> pagesForUdateDB;
+    List<PageModel> pagesForDeleteDB;
+    List<EventModel> eventsForDeleteDB;
+
+    ArrayList<Integer> listForFirstInit;
+    ArrayList<Integer> listForUpdate;
+    ArrayList<Integer> listForNotUpdate;
 
     String LOG_TAG = "INF";
 
@@ -112,134 +119,39 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        pagesForUdateDB = new ArrayList<PageModel>();
-
         dbHelper = new DBHelper(this);
-
-        InitClusterer();
         //onMapReady(map);
-
         wikipedia = new Wiki();
-
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
 
-
-        int centuryStart = settings.getInt("centStartIndx", 0);
-        int centuryFinish = settings.getInt("centFinishIndx", 0);
-        int yearStart = settings.getInt("yearStartIndx", 0);
-        int yearFinish = settings.getInt("yearFinishIndx", 0);
-
-        int startYEAR;
-        int finishYEAR;
-
-        if(centuryStart < firstCenturyAC){
-            startYEAR = (centuryStart - firstCenturyAC) * 100 - yearStart;
-        }
-        else{
-            startYEAR = (centuryStart - firstCenturyAC + 1) * 100 + yearStart;
-        }
-        if(centuryFinish < firstCenturyAC){
-            finishYEAR = (centuryFinish - firstCenturyAC) * 100 - yearFinish;
-        }
-        else{
-            finishYEAR = (centuryFinish - firstCenturyAC + 1) * 100 + yearFinish;
-        }
+        InitClusterer();
 
         mainButton = (Button) this.findViewById(R.id.settingsButton);
-        mainButton.setText(startYEAR + " - " + finishYEAR);
+        mainButton.setText(yearStart + " - " + yearFinish);
 
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        pagesForIsertDB = new ArrayList<PageModel>();
+        pagesForUdateDB = new ArrayList<PageModel>();
+        pagesForDeleteDB = new ArrayList<PageModel>();
+        eventsForDeleteDB = new ArrayList<EventModel>();
 
-        Cursor cursor = db.query("Pages", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
-                new String[]{Integer.toString(startYEAR, finishYEAR)}, null, null, null);
+        SetStartFinishYear(settings);
 
-        ArrayList<Integer> listForFirstInit = new ArrayList<Integer>();
-        ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
-        ArrayList<Integer> listForNotUpdate = new ArrayList<Integer>();
+        listForFirstInit = new ArrayList<Integer>();
+        listForUpdate = new ArrayList<Integer>();
+        listForNotUpdate = new ArrayList<Integer>();
 
-        if(cursor == null || cursor.getCount() == 0){
-            for(int _year = startYEAR; _year <= finishYEAR; _year++) {
-                listForFirstInit.add(_year);
-            }
-        }
+        GetPagesForUpdateDeleteCreate();
 
-        else {
-            cursor.moveToFirst();
-            do {
+        Integer[] masForFirstInit = GetMasForGetPageAsync(listForFirstInit);
+        GetPageAsync getPageAsync = new GetPageAsync();
+        getPageAsync.execute(masForFirstInit);
 
-                int yearFromDB = cursor.getInt(cursor.getColumnIndex("year"));
-                String str = cursor.getString(cursor.getColumnIndex("lastUpdate"));
+        Integer[] masForUpdate = GetMasForGetPageRevIDAsync(listForUpdate);
+        GetPageRevIDAsync getPageRevIDAsync = new GetPageRevIDAsync();
+        getPageRevIDAsync.execute(masForUpdate);
 
-                Log.d(LOG_TAG, str);
-                try {
-                    Calendar thatDay = Calendar.getInstance();
-                    Date date = dateFormat.parse(str);
-                    thatDay.setTime(date);
-
-                    Calendar today = Calendar.getInstance();
-
-                    long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
-
-                    if (diff / (60 * 60 * 1000) > 24) {
-                        listForUpdate.add(yearFromDB);
-                    } else {
-                        listForNotUpdate.add(yearFromDB);
-                    }
-
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-
-            } while (cursor.moveToNext());
-
-            for (int _year = startYEAR; _year <= finishYEAR; _year++) {
-                if(!(listForUpdate.contains(_year) || listForNotUpdate.contains(_year))){
-                    listForFirstInit.add((_year));
-                }
-            }
-        }
-
-        cursor.close();
-        dbHelper.close();
-
-        if(listForFirstInit != null & listForFirstInit.size() != 0) {
-            int count = listForFirstInit.size();
-            int rowCount = count / 50;
-            if(listForFirstInit.size() % 50 != 0)
-                rowCount++;
-
-            ArrayList<String> pages = new ArrayList<String>();
-
-            for(int i = 0; i < rowCount; i++){
-                for(int j = 0; j < 50 & count > i * 50 + j; j++){
-                    String year = String.valueOf(listForFirstInit.get(i * 50 + j)) + "_год";
-                    if (listForFirstInit.get(i * 50 + j) < 0) {
-                        year += "_до_н._э.";
-                        year = year.substring(1);
-                    }
-
-                    pages.add(year);
-                }
-            }
-
-            ArrayMap<Integer, Long> pagesWithID = wikipedia.getPagesRevId(pages);
-
-//            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
-//            Date date = new Date();
-//            pagesForUdateDB.add(new PageModel(year, revIDFromWiki, dateFormat.format(date)));
-
-            Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
-            GetPageAsync getPageAsync = new GetPageAsync();
-            getPageAsync.execute(masForFirstInit);
-        }
-
-        if(listForUpdate != null & listForUpdate.size() != 0) {
-            Integer[] masForUpdate = listForUpdate.toArray(new Integer[listForUpdate.size()]);
-            GetPageRevIDAsync getPageRevIDAsync = new GetPageRevIDAsync();
-            getPageRevIDAsync.execute(masForUpdate);
-        }
-
+        while (getPageAsync.getStatus() == AsyncTask.Status.RUNNING ||
+                getPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING){}
 
         Log.d(LOG_TAG, "--- onCreate main ---");
 
@@ -390,6 +302,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+
     public void onClickPreferences(View view){
 //        Class c = Build.VERSION.SDK_INT <Build.VERSION_CODES.HONEYCOMB ?
 //                OldPreferenceActivity.class : FragmentPreferenceActivity.class;
@@ -402,6 +315,128 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         Intent i = new Intent(this, SettingActivity.class);
         startActivityForResult(i, SHOW_PREFERENCES);
     }
+
+
+
+    private void SetStartFinishYear(SharedPreferences settings){
+        int centuryStart = settings.getInt("centStartIndx", 0);
+        int centuryFinish = settings.getInt("centFinishIndx", 0);
+        int yearStart = settings.getInt("yearStartIndx", 0);
+        int yearFinish = settings.getInt("yearFinishIndx", 0);
+
+
+        if(centuryStart < firstCenturyAC){
+            yearStart = (centuryStart - firstCenturyAC) * 100 - yearStart;
+        }
+        else{
+            yearStart = (centuryStart - firstCenturyAC + 1) * 100 + yearStart;
+        }
+        if(centuryFinish < firstCenturyAC){
+            yearFinish = (centuryFinish - firstCenturyAC) * 100 - yearFinish;
+        }
+        else{
+            yearFinish = (centuryFinish - firstCenturyAC + 1) * 100 + yearFinish;
+        }
+    }
+
+    private void GetPagesForUpdateDeleteCreate(){
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query("Pages", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
+                new String[]{Integer.toString(yearStart, yearFinish)}, null, null, null);
+
+        if(cursor == null || cursor.getCount() == 0){
+            for(int _year = yearStart; _year <= yearFinish; _year++) {
+                listForFirstInit.add(_year);
+            }
+        }
+
+        else {
+            cursor.moveToFirst();
+            do {
+
+                int yearFromDB = cursor.getInt(cursor.getColumnIndex("year"));
+                String str = cursor.getString(cursor.getColumnIndex("lastUpdate"));
+
+                Log.d(LOG_TAG, str);
+                try {
+                    Calendar thatDay = Calendar.getInstance();
+                    Date date = dateFormat.parse(str);
+                    thatDay.setTime(date);
+
+                    Calendar today = Calendar.getInstance();
+
+                    long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
+
+                    if (diff / (60 * 60 * 1000) > 24) {
+                        listForUpdate.add(yearFromDB);
+                    } else {
+                        listForNotUpdate.add(yearFromDB);
+                    }
+
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+
+            } while (cursor.moveToNext());
+
+            for (int _year = yearStart; _year <= yearFinish; _year++) {
+                if(!(listForUpdate.contains(_year) || listForNotUpdate.contains(_year))){
+                    listForFirstInit.add((_year));
+                }
+            }
+        }
+
+        cursor.close();
+        dbHelper.close();
+    }
+
+    private Integer[] GetMasForGetPageAsync(ArrayList<Integer> listForFirstInit){
+        if(listForFirstInit != null & listForFirstInit.size() != 0) {
+            int count = listForFirstInit.size();
+            int rowCount = count / 50;
+            if(listForFirstInit.size() % 50 != 0)
+                rowCount++;
+
+            ArrayList<String> pages = new ArrayList<String>();
+            ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
+
+            for(int i = 0; i < rowCount; i++){
+                for(int j = 0; j < 50 & count > i * 50 + j; j++){
+                    String year = String.valueOf(listForFirstInit.get(i * 50 + j)) + "_год";
+                    if (listForFirstInit.get(i * 50 + j) < 0) {
+                        year += "_до_н._э.";
+                        year = year.substring(1);
+                    }
+
+                    pages.add(year);
+                }
+
+                pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
+                pages.clear();
+            }
+
+            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+            Date date = new Date();
+
+            for(int i = 0; i < pagesWithID.size(); i++){
+                pagesWithID.keyAt(i);
+                pagesForIsertDB.add(new PageModel(pagesWithID.keyAt(i), pagesWithID.valueAt(i), dateFormat.format(date)));
+            }
+
+            return listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
+        }
+        return new Integer[]{};
+    }
+
+    private Integer[] GetMasForGetPageRevIDAsync(ArrayList<Integer> listForUpdate) {
+        if(listForUpdate != null & listForUpdate.size() != 0) {
+            return listForUpdate.toArray(new Integer[listForUpdate.size()]);
+        }
+        return new Integer[]{};
+    }
+
 
 
     private LocationListener locationListener = new LocationListener() {
@@ -515,6 +550,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 rowCount++;
 
             ArrayList<String> pages = new ArrayList<String>();
+            ArrayMap<Integer, Long> pagesWithID = wikipedia.getPagesRevId(pages);
 
             for(int i = 0; i < rowCount; i++){
                 for(int j = 0; j < 50 & count > i * 50 + j; j++){
@@ -526,9 +562,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     pages.add(year);
                 }
+                pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
+                pages.clear();
             }
-
-            ArrayMap<Integer, Long> pagesWithID = wikipedia.getPagesRevId(pages);
 
             return pagesWithID;
         }
@@ -548,20 +584,25 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     new String[]{String.valueOf(startDate), String.valueOf(finishDate)}, null, null, null);
 
             ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
+
+            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+            Date date = new Date();
+
             if(cursor != null){
                 if(cursor.moveToFirst()){
-                    do{
+                    do {
                         int year = cursor.getInt(cursor.getColumnIndex("year"));
                         long revID = cursor.getInt(cursor.getColumnIndex("revisionID"));
-                        long revIDFromWiki = pagesWithID.get(new Integer(year));
 
-                        if (revIDFromWiki != revID){
-                            listForUpdate.add(new Integer(year));
+                        if(pagesWithID.get(new Integer(year)) == null){
+                            pagesForDeleteDB.add(new PageModel(year, revID, dateFormat.format(date)));
                         }
-                        else {
-                            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
-                            Date date = new Date();
+                        else{
+                            long revIDFromWiki = pagesWithID.get(new Integer(year));
+                            if (revIDFromWiki != revID) {
+                                listForUpdate.add(new Integer(year));
+                            }
                             pagesForUdateDB.add(new PageModel(year, revIDFromWiki, dateFormat.format(date)));
                         }
 
@@ -569,7 +610,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     cursor.close();
 
-                    ContentValues cv = new ContentValues();
+                    //ContentValues cv = new ContentValues();
 
                     Integer[] listForUpdateMas = listForUpdate.toArray(new Integer[listForUpdate.size()]);
                     GetPageAsync getPageAsync = new GetPageAsync();
@@ -934,8 +975,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 events.add(eventWithLex.evntModel);
                 //mClusterManager.setOnClusterItemClickListener(eventWithLex.evntModel.coord);
             }
-            //записать в БД
-            MakeMarkers(events);
+            WriteDB(events);
+            //MakeMarkers(events);
 
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -946,15 +987,95 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    private void MakeMarkers(SortedSet<EventModel> events){
+    private void WriteDB(SortedSet<EventModel> events) {
+
+        db = dbHelper.getWritableDatabase();
+        ContentValues cv = new ContentValues();
+
+        db.beginTransaction();
+        for(EventModel eventModel: events){
+
+            cv.put("year", eventModel.year);
+            cv.put("event", eventModel.text);
+            cv.put("latitude", eventModel.coord.getmPosition().latitude);
+            cv.put("longitude", eventModel.coord.getmPosition().longitude);
+
+            db.insert("Events", null, cv);
+
+            cv.clear();
+        }
+
+        for(EventModel eventModel: eventsForDeleteDB){
+            db.delete("Events", "year = ? and text = ?",
+                    new String[]{String.valueOf(eventModel.year), eventModel.text});
+        }
+
+        for(PageModel pageModel : pagesForDeleteDB){
+            db.delete("Pages", "year = ? and revisionID = ?",
+                    new String[]{String.valueOf(pageModel.year), String.valueOf(pageModel.revID)});
+        }
+
+        for(PageModel pageModel : pagesForUdateDB) {
+
+            cv.put("lastUpdate", pageModel.revID);
+            cv.put("lastUpdate", pageModel.lastUpdate);
+
+            db.update("Pages", cv, "year = ?",
+                    new String[]{String.valueOf(pageModel.year)});
+
+            cv.clear();
+        }
+
+        for(PageModel pageModel : pagesForIsertDB){
+
+            cv.put("year", pageModel.year);
+            cv.put("revisionID", pageModel.revID);
+            cv.put("lastUpdate", pageModel.lastUpdate);
+
+            db.insert("Pages", null, cv);
+
+            cv.clear();
+        }
+
+        db.setTransactionSuccessful();
+        db.endTransaction();
+
+        dbHelper.close();
+
+        MakeMarkers();
+    }
+
+    private void MakeMarkers() {
+
+        TreeSet<EventModel> sortedEvent= new TreeSet<EventModel>();
+        db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query("Events", new String[]{"year, text, latitude, longitude"}, "year >= ? and year <= ?",
+                new String[]{String.valueOf(startDate), String.valueOf(finishDate)}, null, null, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                EventModel eventModel = new EventModel();
+                eventModel.setYear(cursor.getInt(cursor.getColumnIndex("year")));
+                eventModel.setText(cursor.getString(cursor.getColumnIndex("text")));
+                Coordinate coordinate = new Coordinate(cursor.getDouble(cursor.getColumnIndex("latitude")),
+                        cursor.getDouble(cursor.getColumnIndex("longitude")));
+                eventModel.setCoord(coordinate);
+
+                sortedEvent.add(eventModel);
+            } while (cursor.moveToNext());
+        }
+
+        dbHelper.close();
+
 
         ArrayList<EventsMarker> eventsMarkers = new ArrayList<EventsMarker>();
 
-        EventsMarker eventsMarker = new EventsMarker(new LatLng(181,181));
+        EventsMarker eventsMarker = new EventsMarker(new LatLng(181, 181));
         EventWithYear eventWithYear = null;
 
-        for(EventModel eventModel : events){
-            if(eventModel.coord != null) {
+        for (EventModel eventModel : sortedEvent) {
+            if (eventModel.coord != null) {
                 if (eventModel.coord.getmPosition() == eventsMarker.coordinate) {
                     eventWithYear = new EventWithYear(eventModel.text, eventModel.year);
                     eventsMarkers.get(eventsMarkers.size() - 1).addEventWithYear(eventWithYear);
@@ -968,7 +1089,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        for(int i = 0; i < eventsMarkers.size(); i++) {
+        for (int i = 0; i < eventsMarkers.size(); i++) {
             switch (eventsMarkers.get(i).eventWithYears.size()) {
                 case 1:
                     eventsMarkers.get(i).iconID = R.drawable.number_1;
@@ -1316,7 +1437,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         }
 
-        db = dbHelper.getWritableDatabase();
+        //db = dbHelper.getWritableDatabase();
 
         Cursor cursor = db.query("Events", new String[]{"year", "event"}, "year >= ? and year <= ?",
                 new String[]{Integer.toString(yearStart, yearFinish)}, null, null, null);
@@ -1338,7 +1459,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             } while (cursor.moveToNext());
 
             for(EventModel evntMod : eventList){
-                if (!(eventsFromDB.contains(evntMod))){
+                if (!(eventsFromDB.equals(evntMod))){
                     eventsToParseLex.add(evntMod);
                 }
             }
@@ -1347,34 +1468,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         for(EventModel evntMod : eventsFromDB){//не проверено
-            if (!(eventList.contains(evntMod))){
+            if (!(eventList.equals(evntMod)) & eventsByYear.keySet().contains(evntMod.year)){
                 //eventsToDelFromDB.add(evntMod);
-                db.delete("Event", "year = ? and text = ?", new String[]{String.valueOf(evntMod.year), evntMod.text});
+                eventsForDeleteDB.add(new EventModel(evntMod.text, evntMod.year));
+                //db.delete("Event", "year = ? and text = ?", new String[]{String.valueOf(evntMod.year), evntMod.text});
             }
         }
 
 
-        dbHelper.close();
+        //dbHelper.close();
 
         ParseLexFromEvents(eventsToParseLex);
 
-//        db = dbHelper.getWritableDatabase();
-//
-//        ContentValues cv = new ContentValues();
-//
-//        cv.put("text", eventItem);
-//        cv.put("lat_dir", "NaN");
-//        cv.put("lon_dir", "NaN");
-//        cv.put("lat_deg", 0);
-//        cv.put("lon_deg", 0);
-//        cv.put("lat_min", 0);
-//        cv.put("lon_min", 0);
-//        cv.put("lat_sec", 0);
-//        cv.put("lon_sec", 0);
-//
-//        long id = db.insert("Event", null, cv);
-//
-//        dbHelper.close();
     }
 
 
@@ -1426,7 +1531,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-    class DBHelper extends SQLiteOpenHelper{
+    private class DBHelper extends SQLiteOpenHelper{
 
         public DBHelper(Context context){
             super(context, "chronDB", null, 1);
@@ -1479,7 +1584,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-    class EventWithLex{
+    private class EventWithLex{
 
         EventModel evntModel;
         ArrayList<String> lexemes;

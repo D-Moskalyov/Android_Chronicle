@@ -8,9 +8,25 @@ import java.util.Comparator;
  * Created by ִלטענטי on 19.08.2015.
  */
 public class EventModel implements Comparable<EventModel>, Comparator<EventModel> {
+    public void setYear(int year) {
+        this.year = year;
+    }
+
+    public void setText(String text) {
+        this.text = text;
+    }
+
+    public void setCoord(Coordinate coord) {
+        this.coord = coord;
+    }
+
     int year;
     String text;
     Coordinate coord;
+
+    public EventModel(){
+
+    }
 
     public EventModel(String evnt){
         text = evnt;
