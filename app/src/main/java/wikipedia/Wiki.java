@@ -529,9 +529,9 @@ public class Wiki implements Serializable{
             int yRev = 0;
             int start = 0;
 
-            x = line.indexOf("title\": \"", start) + 10;
+            x = line.indexOf("\"title\":\"", start) + 9;
 
-            while (x != 9) {
+            while (x > 8) {
 
                 if (x == 9)
                     continue;
@@ -545,17 +545,22 @@ public class Wiki implements Serializable{
                     if(ACBC == "\\u0433\\u043e\\u0434 \\u0434\\u043e \\u043d. \\u044d.")
                         year *= -1;
 
-                    xRev = line.indexOf("\"revid\": ", y) + 8;
-                    yRev = line.indexOf(",", x);
+                    xRev = line.indexOf("\"revid\":", y) + 8;
+                    yRev = line.indexOf(",", xRev);
 
                     String revStr = line.substring(xRev, yRev);
                     Long revID = Long.parseLong(revStr);
 
                     pagesWithID.put(year, revID);
+
+                    start = yRev;
+                    x = line.indexOf("\"title\":\"", start) + 9;
+                }
+                else{
+                    start = x;
+                    x = line.indexOf("\"title\":\"", start) + 9;
                 }
 
-                start = yRev;
-                x = line.indexOf("title\": \"", start) + 10;
             }
 
 //            int x = line.indexOf("\"revid\":") + 8;
