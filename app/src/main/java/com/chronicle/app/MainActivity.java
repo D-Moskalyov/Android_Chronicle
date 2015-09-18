@@ -120,6 +120,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         dbHelper = new DBHelper(this);
+
+//        db = dbHelper.getWritableDatabase();
+//        db.delete("Pages", null, null);
+//        db.delete("Events", null, null);
+//        dbHelper.close();
+
         //onMapReady(map);
         wikipedia = new Wiki();
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
@@ -156,7 +162,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         MakeMarkers();
 
-        Log.d(LOG_TAG, "--- onCreate main ---");
+        //Log.d(LOG_TAG, "--- onCreate main ---");
 
 //        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 //        dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
@@ -237,65 +243,40 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onResume() {
         super.onResume();
-//        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,
-//                1000 * 10, 100, locationListener);
-//        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER,
-//                1000 * 10, 100, locationListener);
-//        CheckEnable();
-//
-//        //get getSharedPreferences year
-//        settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
-//        String intervalString = settings.getString("intervalString", "Set Interval");
-//        mainButton.setText(intervalString);
-//
-//        startDate = 1914;//???????? ?? Preference
-//        finishDate = 1915;//???????? ?? Preference
-//
-//        Calendar thatDay = Calendar.getInstance();
-//        if(true) {//????????? ???
-//            SQLiteDatabase db = dbHelper.getWritableDatabase();
-//
-//            Cursor cursor = db.query("Page", new String[]{"lastUpdate"}, "year = ?",
-//                    new String[]{Integer.toString(startDate)}, null, null, null);
-//
-//            if(cursor != null){
-//                if(cursor.moveToFirst()){
-//                    do{
-//                        String str = "";
-//                        for(String cn : cursor.getColumnNames()){
-//                            str = cursor.getString(cursor.getColumnIndex(cn));
-//                        }
-//                        Log.d(LOG_TAG, str);
-//                        try {
-//                            Date date = dateFormat.parse(str);
-//                            thatDay.setTime(date);
-//                        } catch (ParseException e) {
-//                            e.printStackTrace();
-//                        }
-//                    } while (cursor.moveToNext());
-//                }
-//
-//                Calendar today = Calendar.getInstance();
-//                long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
-//
-//                //if(diff / (60 * 60 * 1000) > 24) {
-//                    getPageRevIDAsync = new GetPageRevIDAsync();
-//                    getPageRevIDAsync.execute(("1914_???"));
-//
-//
-//                //}
-//            }
-//
-//            else {
-//                //?????? ? ?????????? ? ??
-//            }
-//
-//            cursor.close();
-//
-//
-//
-//            dbHelper.close();
-//        }
+
+        if (false)//настройки не поменялись
+            return;
+
+        SetStartFinishYear(settings);
+
+        mainButton = (Button) this.findViewById(R.id.settingsButton);
+        mainButton.setText(globalYearStart + " - " + globalYearFinish);
+
+        pagesForIsertDB = new ArrayList<PageModel>();
+        pagesForUdateDB = new ArrayList<PageModel>();
+        pagesForDeleteDB = new ArrayList<PageModel>();
+        eventsForDeleteDB = new ArrayList<EventModel>();
+
+        listForFirstInit = new ArrayList<Integer>();
+        listForUpdate = new ArrayList<Integer>();
+        listForNotUpdate = new ArrayList<Integer>();
+
+        GetPagesForUpdateDeleteCreate();
+
+        ArrayMap<Integer, String> allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
+
+        ArrayList<EventModel> eventsToParseLex = ParseEvent(allEvntsByYear);
+
+        ArrayList<EventWithLex> eventWithLexList = ParseLexFromEvents(eventsToParseLex);
+
+        List<EventWithLex> eventWithLexes = GetRedirectForLexemes(eventWithLexList);
+
+        SortedSet<EventModel> events = GetCoordForEvent(eventWithLexes);
+
+        WriteDB(events);
+
+        MakeMarkers();
+
     }
 
     @Override
@@ -344,9 +325,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void GetPagesForUpdateDeleteCreate(){
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-
+        String glYearStart = Integer.toString(globalYearStart);
+        String glYearFinish = Integer.toString(globalYearFinish);
         Cursor cursor = db.query("Pages", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
-                new String[]{Integer.toString(globalYearStart, globalYearFinish)}, null, null, null);
+                new String[]{glYearStart, glYearFinish}, null, null, null);
 
         if(cursor == null || cursor.getCount() == 0){
             for(int _year = globalYearStart; _year <= globalYearFinish; _year++) {
@@ -363,15 +345,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 Log.d(LOG_TAG, str);
                 try {
-                    Calendar thatDay = Calendar.getInstance();
+                    Calendar thatDay = Calendar.getInstance(TimeZone.getTimeZone("Europe/Kiev"));
+                    dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    //dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
                     Date date = dateFormat.parse(str);
                     thatDay.setTime(date);
 
                     Calendar today = Calendar.getInstance();
+                    Date todayD = new Date();
+                    today.setTime(todayD);
 
                     long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
 
-                    if (diff / (60 * 60 * 1000) > 24) {
+                    if (diff / (60 * 1000) > 1) {//больше 30 минут
                         listForUpdate.add(yearFromDB);
                     } else {
                         listForNotUpdate.add(yearFromDB);
@@ -392,43 +378,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         cursor.close();
         dbHelper.close();
-    }
-
-    private Integer[] GetNewPageForInsertIntoDB(ArrayList<Integer> listForFirstInit){
-        if(listForFirstInit != null & listForFirstInit.size() != 0) {
-            Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
-
-            GetNewPageRevIDAsync getNewPageRevIDAsync = new GetNewPageRevIDAsync();
-            getNewPageRevIDAsync.execute(masForFirstInit);
-
-            ArrayMap<Integer, Long> pagesWithID = null;
-            try {
-                pagesWithID = getNewPageRevIDAsync.get();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }
-
-            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
-            Date date = new Date();
-
-            for(int i = 0; i < pagesWithID.size(); i++){
-                pagesWithID.keyAt(i);
-                pagesForIsertDB.add(new PageModel(pagesWithID.keyAt(i), pagesWithID.valueAt(i), dateFormat.format(date)));
-            }
-
-            return listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
-        }
-        return new Integer[]{};
-    }
-
-    private Integer[] GetMasForGetPageRevIDAsync(ArrayList<Integer> listForUpdate) {
-        if(listForUpdate != null & listForUpdate.size() != 0) {
-            return listForUpdate.toArray(new Integer[listForUpdate.size()]);
-        }
-        return new Integer[]{};
     }
 
     private ArrayMap<Integer, String> GetPageForParse(ArrayList<Integer> listForFirstInit, ArrayList<Integer>listForUpdate){
@@ -487,6 +436,238 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         return allEvntsByYear;
+    }
+
+    private Integer[] GetNewPageForInsertIntoDB(ArrayList<Integer> listForFirstInit){
+        if(listForFirstInit != null & listForFirstInit.size() != 0) {
+            Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
+
+            GetNewPageRevIDAsync getNewPageRevIDAsync = new GetNewPageRevIDAsync();
+            getNewPageRevIDAsync.execute(masForFirstInit);
+
+            ArrayMap<Integer, Long> pagesWithID = null;
+            try {
+                pagesWithID = getNewPageRevIDAsync.get();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
+
+            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            //dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+            Date date = new Date();
+
+            for(int i = 0; i < pagesWithID.size(); i++){
+                pagesWithID.keyAt(i);
+                pagesForIsertDB.add(new PageModel(pagesWithID.keyAt(i), pagesWithID.valueAt(i), dateFormat.format(date)));
+            }
+
+            return listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
+        }
+        return new Integer[]{};
+    }
+
+    private Integer[] GetMasForGetPageRevIDAsync(ArrayList<Integer> listForUpdate) {
+        if(listForUpdate != null & listForUpdate.size() != 0) {
+            return listForUpdate.toArray(new Integer[listForUpdate.size()]);
+        }
+        return new Integer[]{};
+    }
+
+    private ArrayList<EventWithLex> ParseLexFromEvents(ArrayList<EventModel> events){
+
+        ArrayList<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
+
+        LuceneMorphology luceneMorph = null;
+        try {
+            luceneMorph = new RussianLuceneMorphology();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        for(EventModel evModel : events){
+
+            int x = 0;
+            int y = 0;
+            String word;
+
+            ArrayList<String> lexemes = new ArrayList<String>();
+            ArrayList<String> rawWords = new ArrayList<String>();
+            String text = evModel.text;
+
+            y = text.indexOf(" ", x);
+
+            while (y != -1){
+                word = text.substring(x, y);
+                word = PunctuationHook(word);
+
+                if(word != null & word != "" & word != " "){
+                    rawWords.add(word);
+                }
+
+                x = y + 1;
+                y = text.indexOf(" ", x);
+            }
+
+            y = text.indexOf(".", x);
+
+            if(y != -1){
+                word = text.substring(x, y);
+                word = PunctuationHook(word);
+
+                if(word != null & word != "" & word != " "){
+                    rawWords.add(word);
+                }
+            }
+
+            for(String rawWord : rawWords){
+                String lex = "";
+
+                rawWord = rawWord.toLowerCase();
+                try {//из здесь
+                    try {
+                        wordBaseForms = luceneMorph.getMorphInfo(rawWord);
+                    } catch (Exception e){wordBaseForms = null;}
+
+                    if(wordBaseForms != null) {
+                        int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
+                        String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
+                        char pOS = partOfSpeach.charAt(0);
+
+                        if(pOS == noun){
+                            lex = wordBaseForms.get(0).substring(0, pos - 3);
+                            lexemes.add(lex);
+//                        getPageTemplatesAsync = new GetPageTemplatesAsync();
+//                        String utf8lex = "";
+//                        try {
+//                            utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
+//                        } catch (UnsupportedEncodingException e) {
+//                            e.printStackTrace();
+//                        }
+//                        getPageTemplatesAsync.execute(utf8lex);
+                        }
+                    }
+                }catch (WrongCharaterException e){
+                    e.printStackTrace();
+                }
+
+
+            }
+
+            eventWithLexList.add(new EventWithLex(evModel, lexemes));
+        }
+
+        return eventWithLexList;
+
+    }
+
+    private List<EventWithLex> GetRedirectForLexemes(List<EventWithLex> eventWithLexes){
+
+        ArrayList<String> rawLex = new ArrayList<String>();
+
+        for(EventWithLex eventWithLex : eventWithLexes){
+            rawLex.addAll(eventWithLex.lexemes);
+        }
+
+        String[] rawLexMas = rawLex.toArray(new String[rawLex.size()]);
+
+        GetPageRedirectAsync getPageRedirectAsync = new GetPageRedirectAsync();
+        getPageRedirectAsync.execute(rawLexMas);
+
+        try {
+            ArrayList<String> lexForRedirect = getPageRedirectAsync.get(10000, TimeUnit.MILLISECONDS);
+
+            for(String lexForRedir : lexForRedirect){
+                GetAddressPageForRedirectAsync getAddressPageForRedirectAsync =
+                        new GetAddressPageForRedirectAsync();
+                getAddressPageForRedirectAsync.execute(lexForRedir);
+                String lexToRedir = getAddressPageForRedirectAsync.get(5000, TimeUnit.MILLISECONDS);
+
+                lexToRedir = lexToRedir.toLowerCase();
+                lexForRedir = lexForRedir.toLowerCase();
+
+                for(int i = 0; i < eventWithLexes.size(); i++){
+
+                    int indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                    while (indx >= 0) {
+                        eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
+                        indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                    }
+
+                }
+            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        } finally {
+            return eventWithLexes;
+        }
+
+    }
+
+    private SortedSet<EventModel> GetCoordForEvent(List<EventWithLex> eventWithLexes){
+
+        SortedSet<EventModel> events = new TreeSet<EventModel>();
+        ArrayList<String> allLexemes = new ArrayList<String>();
+
+        for(EventWithLex eventWithLex : eventWithLexes){
+            allLexemes.addAll(eventWithLex.lexemes);
+        }
+
+        HashSet<String> set = new HashSet<String>(allLexemes);
+
+        String[] rawLexMas = set.toArray(new String[set.size()]);
+
+        GetPageTemplatesAsync getPageTemplatesAsync = new GetPageTemplatesAsync();
+        getPageTemplatesAsync.execute(rawLexMas);
+
+        try {
+            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get(50000, TimeUnit.MILLISECONDS);
+
+            String[] lexesWithCoordMas = lexesWithCoord.toArray(new String[lexesWithCoord.size()]);
+
+            GetCoordsAsynk getCoordsAsynk = new GetCoordsAsynk();
+            getCoordsAsynk.execute(lexesWithCoordMas);
+
+            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get(500000, TimeUnit.MILLISECONDS);
+
+
+
+            for(int i = 0; i < eventWithLexes.size(); i++){
+                ArrayList<String> lexesFromEvent = eventWithLexes.get(i).lexemes;
+
+                for(String lexFromEvent : lexesFromEvent){
+
+                    int ind = placesWithCoord.indexOfKey(lexFromEvent);
+                    if(ind >= 0){
+                        eventWithLexes.get(i).evntModel.coord = placesWithCoord.valueAt(ind);
+                        //здесь присваиваются первые попавшиеся координаты
+
+                        break;
+                    }
+                }
+
+            }
+
+            for(EventWithLex eventWithLex : eventWithLexes){
+                events.add(eventWithLex.evntModel);
+                //mClusterManager.setOnClusterItemClickListener(eventWithLex.evntModel.coord);
+            }
+
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        } finally {
+            return events;
+        }
     }
 
 
@@ -682,7 +863,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
 
             dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+            //dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
             Date date = new Date();
 
             if(cursor != null){
@@ -942,199 +1123,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
 
-    private ArrayList<EventWithLex> ParseLexFromEvents(ArrayList<EventModel> events){
-
-        ArrayList<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
-
-        LuceneMorphology luceneMorph = null;
-        try {
-            luceneMorph = new RussianLuceneMorphology();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        for(EventModel evModel : events){
-
-            int x = 0;
-            int y = 0;
-            String word;
-
-            ArrayList<String> lexemes = new ArrayList<String>();
-            ArrayList<String> rawWords = new ArrayList<String>();
-            String text = evModel.text;
-
-            y = text.indexOf(" ", x);
-
-            while (y != -1){
-                word = text.substring(x, y);
-                word = PunctuationHook(word);
-
-                if(word != null & word != ""){
-                    rawWords.add(word);
-                }
-
-                x = y + 1;
-                y = text.indexOf(" ", x);
-            }
-
-            y = text.indexOf(".", x);
-
-            if(y != -1){
-                word = text.substring(x, y);
-                word = PunctuationHook(word);
-
-                if(word != null & word != ""){
-                    rawWords.add(word);
-                }
-            }
-
-            for(String rawWord : rawWords){
-                String lex = "";
-
-                rawWord = rawWord.toLowerCase();
-                try {//из здесь
-                    wordBaseForms = luceneMorph.getMorphInfo(rawWord);
-
-                    if(wordBaseForms != null) {
-                        int pos = (wordBaseForms.get(0)).indexOf("|") + 3;
-                        String partOfSpeach = wordBaseForms.get(0).substring(pos, pos + 1);
-                        char pOS = partOfSpeach.charAt(0);
-
-                        if(pOS == noun){
-                            lex = wordBaseForms.get(0).substring(0, pos - 3);
-                            lexemes.add(lex);
-//                        getPageTemplatesAsync = new GetPageTemplatesAsync();
-//                        String utf8lex = "";
-//                        try {
-//                            utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
-//                        } catch (UnsupportedEncodingException e) {
-//                            e.printStackTrace();
-//                        }
-//                        getPageTemplatesAsync.execute(utf8lex);
-                        }
-                    }
-                }catch (WrongCharaterException e){
-                    e.printStackTrace();
-                }
-
-
-            }
-
-            eventWithLexList.add(new EventWithLex(evModel, lexemes));
-        }
-
-        return eventWithLexList;
-
-    }
-
-    private List<EventWithLex> GetRedirectForLexemes(List<EventWithLex> eventWithLexes){
-
-        ArrayList<String> rawLex = new ArrayList<String>();
-
-        for(EventWithLex eventWithLex : eventWithLexes){
-            rawLex.addAll(eventWithLex.lexemes);
-        }
-
-        String[] rawLexMas = rawLex.toArray(new String[rawLex.size()]);
-
-        GetPageRedirectAsync getPageRedirectAsync = new GetPageRedirectAsync();
-        getPageRedirectAsync.execute(rawLexMas);
-
-        try {
-            ArrayList<String> lexForRedirect = getPageRedirectAsync.get(10000, TimeUnit.MILLISECONDS);
-
-            for(String lexForRedir : lexForRedirect){
-                GetAddressPageForRedirectAsync getAddressPageForRedirectAsync =
-                        new GetAddressPageForRedirectAsync();
-                getAddressPageForRedirectAsync.execute(lexForRedir);
-                String lexToRedir = getAddressPageForRedirectAsync.get(5000, TimeUnit.MILLISECONDS);
-
-                lexToRedir = lexToRedir.toLowerCase();
-                lexForRedir = lexForRedir.toLowerCase();
-
-                for(int i = 0; i < eventWithLexes.size(); i++){
-
-                        int indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
-                        while (indx >= 0) {
-                            eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
-                            indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
-                        }
-
-                }
-            }
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-        } finally {
-            return eventWithLexes;
-        }
-
-    }
-
-    private SortedSet<EventModel> GetCoordForEvent(List<EventWithLex> eventWithLexes){
-
-        SortedSet<EventModel> events = new TreeSet<EventModel>();
-        ArrayList<String> allLexemes = new ArrayList<String>();
-
-        for(EventWithLex eventWithLex : eventWithLexes){
-            allLexemes.addAll(eventWithLex.lexemes);
-        }
-
-        HashSet<String> set = new HashSet<String>(allLexemes);
-
-        String[] rawLexMas = set.toArray(new String[set.size()]);
-
-        GetPageTemplatesAsync getPageTemplatesAsync = new GetPageTemplatesAsync();
-        getPageTemplatesAsync.execute(rawLexMas);
-
-        try {
-            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get(50000, TimeUnit.MILLISECONDS);
-
-            String[] lexesWithCoordMas = lexesWithCoord.toArray(new String[lexesWithCoord.size()]);
-
-            GetCoordsAsynk getCoordsAsynk = new GetCoordsAsynk();
-            getCoordsAsynk.execute(lexesWithCoordMas);
-
-            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get(500000, TimeUnit.MILLISECONDS);
-
-
-
-            for(int i = 0; i < eventWithLexes.size(); i++){
-                ArrayList<String> lexesFromEvent = eventWithLexes.get(i).lexemes;
-
-                for(String lexFromEvent : lexesFromEvent){
-
-                    int ind = placesWithCoord.indexOfKey(lexFromEvent);
-                    if(ind >= 0){
-                        eventWithLexes.get(i).evntModel.coord = placesWithCoord.valueAt(ind);
-                        //здесь присваиваются первые попавшиеся координаты
-
-                        break;
-                    }
-                }
-
-            }
-
-            for(EventWithLex eventWithLex : eventWithLexes){
-                events.add(eventWithLex.evntModel);
-                //mClusterManager.setOnClusterItemClickListener(eventWithLex.evntModel.coord);
-            }
-
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-        } finally {
-            return events;
-        }
-    }
-
     private void WriteDB(SortedSet<EventModel> events) {
 
         db = dbHelper.getWritableDatabase();
@@ -1163,7 +1151,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         for(PageModel pageModel : pagesForDeleteDB){
             db.delete("Pages", "year = ? and revisionID = ?",
                     new String[]{String.valueOf(pageModel.year), String.valueOf(pageModel.revID)});
-        }
+        }//!!!КОД ВЫШЕ НЕ ПРОВЕРЕН!!!
 
         for(PageModel pageModel : pagesForUdateDB) {
 
@@ -1174,7 +1162,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     new String[]{String.valueOf(pageModel.year)});
 
             cv.clear();
-        }//!!!КОД ВЫШЕ НЕ ПРОВЕРЕН!!!
+        }
 
         for(PageModel pageModel : pagesForIsertDB){
 
@@ -1206,7 +1194,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             do {
                 EventModel eventModel = new EventModel();
                 eventModel.setYear(cursor.getInt(cursor.getColumnIndex("year")));
-                eventModel.setText(cursor.getString(cursor.getColumnIndex("text")));
+                eventModel.setText(cursor.getString(cursor.getColumnIndex("event")));
                 Coordinate coordinate = new Coordinate(cursor.getDouble(cursor.getColumnIndex("latitude")),
                         cursor.getDouble(cursor.getColumnIndex("longitude")));
                 eventModel.setCoord(coordinate);
@@ -1283,6 +1271,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mClusterManager.addItems(eventsMarkers);
 
     }
+
+
 
     private Coordinate ParseCoord(String fullText){
 
@@ -1716,13 +1706,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         protected void onBeforeClusterItemRendered(EventsMarker item, MarkerOptions markerOptions) {
             mImageView.setImageResource(item.iconID);
-            markerOptions.icon(BitmapDescriptorFactory.fromResource(item.iconID)).title(item.coordinate.toString());
+            markerOptions.icon(BitmapDescriptorFactory.fromResource(item.iconID)).title(item.eventWithYears
+                    .get(0).text);
         }
 
-        @Override
-        protected void onBeforeClusterRendered(Cluster<EventsMarker> cluster, MarkerOptions markerOptions) {
-            super.onBeforeClusterRendered(cluster, markerOptions);
-        }
+//        @Override
+//        protected void onBeforeClusterRendered(Cluster<EventsMarker> cluster, MarkerOptions markerOptions) {
+//            super.onBeforeClusterRendered(cluster, markerOptions);
+//        }
 
         @Override
         protected boolean shouldRenderAsCluster(Cluster cluster) {
