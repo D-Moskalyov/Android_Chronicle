@@ -130,6 +130,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         wikipedia = new Wiki();
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
 
+//        LuceneMorphology luceneMorph = null;
+//        try {
+//            luceneMorph = new RussianLuceneMorphology();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        wordBaseForms = luceneMorph.getMorphInfo("лотарингии");
+//        wordBaseForms = luceneMorph.getMorphInfo("гренландия");
+//        wordBaseForms = luceneMorph.getMorphInfo("китай");
+//        wordBaseForms = luceneMorph.getMorphInfo("андернахе");
+//        wordBaseForms = luceneMorph.getMorphInfo("константинополь");
+
         InitClusterer();
 
         SetStartFinishYear(settings);
@@ -244,7 +256,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onResume() {
         super.onResume();
 
-        if (false)//настройки не поменялись
+        if (true)//настройки не поменялись
             return;
 
         SetStartFinishYear(settings);
@@ -357,7 +369,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
 
-                    if (diff / (60 * 1000) > 1) {//больше 30 минут
+                    if (diff / (60 * 1000) > 30) {//больше 30 минут
                         listForUpdate.add(yearFromDB);
                     } else {
                         listForNotUpdate.add(yearFromDB);
@@ -426,7 +438,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        while (getPageUpdateAsync.getStatus() == AsyncTask.Status.RUNNING){}
 
         try {
-            allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageUpdateAsync.get(5, TimeUnit.SECONDS));
+            allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageUpdateAsync.get(100, TimeUnit.SECONDS));
         } catch (TimeoutException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -830,7 +842,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 rowCount++;
 
             ArrayList<String> pages = new ArrayList<String>();
-            ArrayMap<Integer, Long> pagesWithID = wikipedia.getPagesRevId(pages);
+            ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
 
             for(int i = 0; i < rowCount; i++){
                 for(int j = 0; j < 50 & count > i * 50 + j; j++){
@@ -852,7 +864,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
             if(pagesWithID == null || pagesWithID.size() == 0)
-                return new ArrayList<Integer>();//!!!ДАЛЕЕ НЕ ПРОВЕРЕННЫЙ КОД!!!
+                return new ArrayList<Integer>();
 
             //long res = Long.parseLong(result[1]);
             SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -860,7 +872,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             Cursor cursor = db.query("Pages", new String[]{"year, revisionID"}, "year >= ? and year <= ?",
                     new String[]{String.valueOf(globalYearStart), String.valueOf(globalYearFinish)}, null, null, null);
 
-            ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
+            ArrayList<Integer> listForUpdateInner = new ArrayList<Integer>();
 
             dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             //dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
@@ -878,22 +890,21 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         else{
                             long revIDFromWiki = pagesWithID.get(new Integer(year));
                             if (revIDFromWiki != revID) {
-                                listForUpdate.add(new Integer(year));
+                                listForUpdateInner.add(new Integer(year));
                             }
                             pagesForUdateDB.add(new PageModel(year, revIDFromWiki, dateFormat.format(date)));
                         }
 
                     } while (cursor.moveToNext());
-
-                    cursor.close();
-                    dbHelper.close();
-
-                    return listForUpdate;
-
+                    //return listForUpdateInner;
                 }
-
+                cursor.close();
+                //return listForUpdateInner;
             }
-            return new ArrayList<Integer>();//!!!ВЫШЕ НЕ ПРОВЕРЕННЫЙ КОД!!!
+            dbHelper.close();
+
+            return listForUpdateInner;
+
         }
 
         //        protected void onProgressUpdate(Integer... progress) {
@@ -983,7 +994,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 rowCount++;
 
             for(int i = 0; i < rowCount; i++){
-                for(int j = 1; j <= 50 & sizeParamsList > i * 50 + j; j++){
+                for(int j = 0; j < 50 & sizeParamsList > i * 50 + j; j++){
                     tempList.add(lexesList.get(i * 50 + j));
                 }
 
@@ -1063,7 +1074,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 rowCount++;
 
             for(int i = 0; i < rowCount; i++){
-                for(int j = 0; j <= 50 & sizeParamsList > i * 50 + j; j++){
+                for(int j = 0; j < 50 & sizeParamsList > i * 50 + j; j++){
                     tempList.add(paramsList.get(i * 50 + j));
                 }
 
@@ -1155,7 +1166,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         for(PageModel pageModel : pagesForUdateDB) {
 
-            cv.put("lastUpdate", pageModel.revID);
+            cv.put("revisionID", pageModel.revID);
             cv.put("lastUpdate", pageModel.lastUpdate);
 
             db.update("Pages", cv, "year = ?",
@@ -1213,7 +1224,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         for (EventModel eventModel : sortedEvent) {
             if (eventModel.coord != null) {
-                if (eventModel.coord.getmPosition() == eventsMarker.coordinate) {
+                if (eventModel.coord.getmPosition().latitude == eventsMarker.coordinate.latitude &
+                        eventModel.coord.getmPosition().longitude == eventsMarker.coordinate.longitude) {
                     eventWithYear = new EventWithYear(eventModel.text, eventModel.year);
                     eventsMarkers.get(eventsMarkers.size() - 1).addEventWithYear(eventWithYear);
                 } else {
@@ -1463,6 +1475,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         int finishEv;
         int startRef;
         int finishRef;
+        boolean isLast = false;
 
         for(int i = 0; i < eventsByYear.size(); i++) {
 
@@ -1479,7 +1492,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             while (finishEv != -1) {
 
-                if (finishEv - startEv != 1) {
+                if ((finishEv - startEv) != 1 & (finishEv - startEv) != 0) {
 
                     if (finishEv - startEv > 17) {
                         eventItem = events.substring(startEv + 2, finishEv - 1);
@@ -1523,56 +1536,61 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
 
                 } else {
+                    if (!isLast) {
+                        startEv++;
+                        finishEv = events.indexOf("*", startEv + 1);
 
-                    startEv++;
-                    finishEv = events.indexOf("*", startEv + 1);
+                        int indxDef = eventItem.indexOf(" — ");
 
-                    int indxDef = eventItem.indexOf(" — ");
+                        if (indxDef != -1)
+                            eventItem = eventItem.substring(0, indxDef + 3) +
+                                    events.substring(startEv + 2, finishEv - 1);
+                        else
+                            eventItem = eventItem +
+                                    events.substring(startEv + 2, finishEv - 1);
 
-                    if (indxDef != -1)
-                        eventItem = eventItem.substring(0, indxDef + 3) +
-                                events.substring(startEv + 2, finishEv - 1);
-                    else
-                        eventItem = eventItem +
-                                events.substring(startEv + 2, finishEv - 1);
-
-                    int indxSlash = eventItem.indexOf("==");
-                    if (indxSlash != -1) {
-                        eventItem = eventItem.substring(0, indxSlash - 2);
-                    }
-
-                    startRef = eventItem.indexOf("<ref");
-                    while (startRef != -1) {
-                        startRef = eventItem.indexOf("<ref>");
-                        if (startRef != -1) {
-                            finishRef = eventItem.indexOf("</ref>", startRef);
-                            eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
-
-                            startRef = eventItem.indexOf("<ref");
-                        } else {
-                            startRef = eventItem.indexOf("<ref");
-                            finishRef = eventItem.indexOf("/>", startRef);
-                            if (finishRef != -1) {
-                                eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
-                            } else {
-                                finishRef = eventItem.indexOf("</ref>", startRef);
-                                eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
-                            }
-                            startRef = eventItem.indexOf("<ref");
+                        int indxSlash = eventItem.indexOf("==");
+                        if (indxSlash != -1) {
+                            eventItem = eventItem.substring(0, indxSlash - 2);
                         }
 
+                        startRef = eventItem.indexOf("<ref");
+                        while (startRef != -1) {
+                            startRef = eventItem.indexOf("<ref>");
+                            if (startRef != -1) {
+                                finishRef = eventItem.indexOf("</ref>", startRef);
+                                eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+
+                                startRef = eventItem.indexOf("<ref");
+                            } else {
+                                startRef = eventItem.indexOf("<ref");
+                                finishRef = eventItem.indexOf("/>", startRef);
+                                if (finishRef != -1) {
+                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
+                                } else {
+                                    finishRef = eventItem.indexOf("</ref>", startRef);
+                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+                                }
+                                startRef = eventItem.indexOf("<ref");
+                            }
+
+                        }
+
+                        while (eventItem.contains("[[")) {
+                            eventItem = TrimHooks(eventItem);
+                        }
+
+
+                        eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
                     }
-
-                    while (eventItem.contains("[[")) {
-                        eventItem = TrimHooks(eventItem);
-                    }
-
-
-                    eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
                 }
 
                 startEv = finishEv;
                 finishEv = events.indexOf("*", startEv + 1);
+                if(finishEv < 0){
+                    finishEv = events.indexOf("\n", startEv + 1);
+                    isLast = true;
+                }
             }
         }
 
@@ -1647,15 +1665,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             int finishEv = evnt.indexOf("]]", startEv + 2);
             //startToNext =+ 4;
 
-            String inHooks = evnt.substring(startEv + 2, finishEv);
-            int separ = inHooks.indexOf("|");
-            if(separ != -1){
-                //startToNext += inHooks.length() - separ - 1;
-                inHooks = inHooks.substring(separ + 1, inHooks.length());
+            if(finishEv != -1) {
+                String inHooks = evnt.substring(startEv + 2, finishEv);
+                int separ = inHooks.indexOf("|");
+                if (separ != -1) {
+                    //startToNext += inHooks.length() - separ - 1;
+                    inHooks = inHooks.substring(separ + 1, inHooks.length());
+                }
+
+                evnt = evnt.substring(0, startEv) + inHooks + evnt.substring(finishEv + 2, evnt.length());
             }
-
-            evnt = evnt.substring(0, startEv) + inHooks + evnt.substring(finishEv + 2, evnt.length());
-
             //TrimHooks(evnt);
             return evnt;
         }

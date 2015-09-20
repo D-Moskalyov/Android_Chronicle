@@ -7,7 +7,7 @@ import java.util.Comparator;
 /**
  * Created by Дмитрий on 19.08.2015.
  */
-public class EventModel implements Comparable<EventModel>, Comparator<EventModel> {
+public class EventModel implements Comparable<EventModel>{
     public void setYear(int year) {
         this.year = year;
     }
@@ -58,18 +58,20 @@ public class EventModel implements Comparable<EventModel>, Comparator<EventModel
 
         if (this.coord == null)
             return -1;
-        if (this.coord != another.coord)
-            return this.coord.compareTo(another.coord);
+        if (this.coord.compareTo(another.coord) > 0)
+            return 1;
+        if (this.coord.compareTo(another.coord) < 0)
+            return -1;
         if (this.year != another.year)
             return this.year - another.year;
         return this.text.compareTo(another.text);
 
     }
 
-    @Override
-    public int compare(EventModel lhs, EventModel rhs) {//для сравнения данніх из БД и Parse
-        if(lhs.year == rhs.year & lhs.text == rhs.text)
-            return 0;
-        return 1;
-    }
+//    @Override
+//    public int compare(EventModel lhs, EventModel rhs) {//для сравнения данніх из БД и Parse
+//        if(lhs.year == rhs.year & lhs.text == rhs.text)
+//            return 0;
+//        return 1;
+//    }
 }
