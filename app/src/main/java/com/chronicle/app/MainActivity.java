@@ -79,6 +79,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     //int centuryFinish;
     int globalYearStart;
     int globalYearFinish;
+    int innerYearStart;
+    int innerYearfinish;
 
     Wiki wikipedia;
 
@@ -110,17 +112,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         firstCenturyAC = (int) getResources().getInteger(R.integer.firstCenturyAC);
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
-
         mapFragment = (MapFragment) getFragmentManager().findFragmentById(R.id.map);
-
         map = mapFragment.getMap();
         if(map == null){
             finish();
             return;
         }
-
         dbHelper = new DBHelper(this);
-
 //        db = dbHelper.getWritableDatabase();
 //        db.delete("Pages", null, null);
 //        db.delete("Events", null, null);
@@ -129,7 +127,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         //onMapReady(map);
         wikipedia = new Wiki();
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
-
 //        LuceneMorphology luceneMorph = null;
 //        try {
 //            luceneMorph = new RussianLuceneMorphology();
@@ -141,39 +138,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        wordBaseForms = luceneMorph.getMorphInfo("китай");
 //        wordBaseForms = luceneMorph.getMorphInfo("андернахе");
 //        wordBaseForms = luceneMorph.getMorphInfo("константинополь");
-
+        innerYearStart = 0;
+        innerYearfinish = 0;
         InitClusterer();
-
-        SetStartFinishYear(settings);
-
-        mainButton = (Button) this.findViewById(R.id.settingsButton);
-        mainButton.setText(globalYearStart + " - " + globalYearFinish);
-
-        pagesForIsertDB = new ArrayList<PageModel>();
-        pagesForUdateDB = new ArrayList<PageModel>();
-        pagesForDeleteDB = new ArrayList<PageModel>();
-        eventsForDeleteDB = new ArrayList<EventModel>();
-
-        listForFirstInit = new ArrayList<Integer>();
-        listForUpdate = new ArrayList<Integer>();
-        listForNotUpdate = new ArrayList<Integer>();
-
-        GetPagesForUpdateDeleteCreate();
-
-        ArrayMap<Integer, String> allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
-
-        ArrayList<EventModel> eventsToParseLex = ParseEvent(allEvntsByYear);
-
-        ArrayList<EventWithLex> eventWithLexList = ParseLexFromEvents(eventsToParseLex);
-
-        List<EventWithLex> eventWithLexes = GetRedirectForLexemes(eventWithLexList);
-
-        SortedSet<EventModel> events = GetCoordForEvent(eventWithLexes);
-
-        WriteDB(events);
-
-        MakeMarkers();
-
         //Log.d(LOG_TAG, "--- onCreate main ---");
 
 //        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -196,13 +163,52 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     }
 
-    private void InitClusterer(){
-        mClusterManager = new ClusterManager<EventsMarker>(this, map);
-        mClusterManager.setRenderer(new EventRenderer());
-        map.setOnCameraChangeListener(mClusterManager);
-        map.setOnMarkerClickListener(mClusterManager);
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-        //addItems();
+        SetStartFinishYear(settings);
+        if (innerYearStart == globalYearStart &
+                innerYearfinish == globalYearFinish )//настройки не поменялись
+            return;
+
+        innerYearStart = globalYearStart;
+        innerYearfinish = globalYearFinish;
+
+        mainButton = (Button) this.findViewById(R.id.settingsButton);
+        mainButton.setText(globalYearStart + " - " + globalYearFinish);
+
+        pagesForIsertDB = new ArrayList<PageModel>();
+        pagesForUdateDB = new ArrayList<PageModel>();
+        pagesForDeleteDB = new ArrayList<PageModel>();
+        eventsForDeleteDB = new ArrayList<EventModel>();
+
+        listForFirstInit = new ArrayList<Integer>();
+        listForUpdate = new ArrayList<Integer>();
+        listForNotUpdate = new ArrayList<Integer>();
+
+        ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
+        ArrayList<EventModel> eventsToParseLex = new ArrayList<EventModel>();
+        List<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
+        List<EventWithLex> eventWithLexes = new ArrayList<EventWithLex>();
+        SortedSet<EventModel> events = new TreeSet<EventModel>();
+
+        GetPagesForUpdateDeleteCreate();
+
+        if(listForFirstInit.size() != 0 || listForUpdate.size() != 0)
+            allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
+        if(allEvntsByYear.size() != 0)
+            eventsToParseLex = ParseEvent(allEvntsByYear);
+        if(eventsToParseLex.size() != 0)
+            eventWithLexList = ParseLexFromEvents(eventsToParseLex);
+        if(eventWithLexList.size() != 0)
+            eventWithLexes = GetRedirectForLexemes(eventWithLexList);
+        if(eventWithLexes.size() != 0)
+            events = GetCoordForEvent(eventWithLexes);
+        if(events.size() != 0)
+            WriteDB(events);
+
+        MakeMarkers();
     }
 
 //    private void addItems() {
@@ -253,51 +259,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
-    protected void onResume() {
-        super.onResume();
-
-        if (true)//настройки не поменялись
-            return;
-
-        SetStartFinishYear(settings);
-
-        mainButton = (Button) this.findViewById(R.id.settingsButton);
-        mainButton.setText(globalYearStart + " - " + globalYearFinish);
-
-        pagesForIsertDB = new ArrayList<PageModel>();
-        pagesForUdateDB = new ArrayList<PageModel>();
-        pagesForDeleteDB = new ArrayList<PageModel>();
-        eventsForDeleteDB = new ArrayList<EventModel>();
-
-        listForFirstInit = new ArrayList<Integer>();
-        listForUpdate = new ArrayList<Integer>();
-        listForNotUpdate = new ArrayList<Integer>();
-
-        GetPagesForUpdateDeleteCreate();
-
-        ArrayMap<Integer, String> allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
-
-        ArrayList<EventModel> eventsToParseLex = ParseEvent(allEvntsByYear);
-
-        ArrayList<EventWithLex> eventWithLexList = ParseLexFromEvents(eventsToParseLex);
-
-        List<EventWithLex> eventWithLexes = GetRedirectForLexemes(eventWithLexList);
-
-        SortedSet<EventModel> events = GetCoordForEvent(eventWithLexes);
-
-        WriteDB(events);
-
-        MakeMarkers();
-
-    }
-
-    @Override
     protected void onPause() {
         super.onPause();
         locationManager.removeUpdates(locationListener);
     }
-
-
 
     public void onClickPreferences(View view){
 //        Class c = Build.VERSION.SDK_INT <Build.VERSION_CODES.HONEYCOMB ?
@@ -313,6 +278,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
+
+    private void InitClusterer(){
+        mClusterManager = new ClusterManager<EventsMarker>(this, map);
+        mClusterManager.setRenderer(new EventRenderer());
+        map.setOnCameraChangeListener(mClusterManager);
+        map.setOnMarkerClickListener(mClusterManager);
+
+        //addItems();
+    }
 
     private void SetStartFinishYear(SharedPreferences settings){
         int centuryStart = settings.getInt("centStartIndx", 0);
@@ -1194,6 +1168,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void MakeMarkers() {
+        mClusterManager.clearItems();
+        map.clear();
 
         TreeSet<EventModel> sortedEvent = new TreeSet<EventModel>();
         db = dbHelper.getWritableDatabase();
@@ -1281,7 +1257,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         mClusterManager.addItems(eventsMarkers);
-
     }
 
 
@@ -1490,7 +1465,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             startEv = events.indexOf("*");
             finishEv = events.indexOf("*", startEv + 1);
 
-            while (finishEv != -1) {
+            while (finishEv > 0) {
 
                 if ((finishEv - startEv) != 1 & (finishEv - startEv) != 0) {
 
@@ -1508,7 +1483,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             startRef = eventItem.indexOf("<ref>");
                             if (startRef != -1) {
                                 finishRef = eventItem.indexOf("</ref>", startRef);
-                                eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+                                if(finishRef < 0)
+                                    eventItem = eventItem.substring(0, startRef);
+                                else
+                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
 
                                 startRef = eventItem.indexOf("<ref");
                             } else {
@@ -1587,8 +1565,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 startEv = finishEv;
                 finishEv = events.indexOf("*", startEv + 1);
-                if(finishEv < 0){
-                    finishEv = events.indexOf("\n", startEv + 1);
+                if(finishEv < 0 & !isLast){
+                    finishEv = events.indexOf("\n", startEv + 1) + 1;
                     isLast = true;
                 }
             }

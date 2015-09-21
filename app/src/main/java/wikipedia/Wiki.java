@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
 /**
- * Created by Дмитрий on 17.08.2015.
+ * Created by пїЅпїЅпїЅпїЅпїЅпїЅпїЅ on 17.08.2015.
  */
 public class Wiki implements Serializable{
 
@@ -334,7 +334,7 @@ public class Wiki implements Serializable{
             addressToRedirect = temp.substring(x, y);
         }
         else{
-            x = temp.indexOf("#перенаправление [[");
+            x = temp.indexOf("#пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ [[");
             if(x >= 0){
                 x += 19;
                 y = temp.indexOf("]]", x);
@@ -694,6 +694,7 @@ public class Wiki implements Serializable{
 
     protected void logurl(String url, String method) {
         logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", url);
+        //logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", new Object[]{url});
     }
 
 //    public String resolveRedirect(String title) throws IOException

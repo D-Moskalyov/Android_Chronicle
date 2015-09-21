@@ -17,7 +17,7 @@ import java.util.Objects;
 public class SettingActivity extends Activity {
 
     private boolean scrolling = false;
-    private int indexOfFirstCenturyAC = R.integer.firstCenturyAC - 1;
+    private int indexOfFirstCenturyAC;
     SharedPreferences mySharedPreferences;
 
     WheelView centuryStart = null;
@@ -89,6 +89,7 @@ public class SettingActivity extends Activity {
                 "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
                 "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XIII", "XIX", "XX", "XXI"
         };
+        indexOfFirstCenturyAC = (int)getResources().getInteger(R.integer.firstCenturyAC) - 1;
 
         intervalText = (TextView) findViewById(R.id.intervalText);
 
@@ -139,6 +140,7 @@ public class SettingActivity extends Activity {
 
                 SharedPreferences.Editor editor = mySharedPreferences.edit();
                 editor.putInt("centStartIndx", centuryStart.getCurrentItem());
+                editor.putInt("centFinishIndx", centuryFinish.getCurrentItem());
                 editor.apply();
                 //установит строку
                 intervalText.setText(MakeIntervalString(centuryStart, centuryFinish, yearStart, yearFinish));
@@ -156,6 +158,7 @@ public class SettingActivity extends Activity {
                 scrolling = false;
 
                 SharedPreferences.Editor editor = mySharedPreferences.edit();
+                editor.putInt("centStartIndx", centuryStart.getCurrentItem());
                 editor.putInt("centFinishIndx", centuryFinish.getCurrentItem());
                 editor.apply();
 
@@ -205,6 +208,7 @@ public class SettingActivity extends Activity {
 
                 SharedPreferences.Editor editor = mySharedPreferences.edit();
                 editor.putInt("yearStartIndx", yearStart.getCurrentItem());
+                editor.putInt("yearFinishIndx", yearFinish.getCurrentItem());
                 editor.apply();
                 //установит строку
                 intervalText.setText(MakeIntervalString(centuryStart, centuryFinish, yearStart, yearFinish));
@@ -222,6 +226,7 @@ public class SettingActivity extends Activity {
                 scrolling = false;
 
                 SharedPreferences.Editor editor = mySharedPreferences.edit();
+                editor.putInt("yearStartIndx", yearStart.getCurrentItem());
                 editor.putInt("yearFinishIndx", yearFinish.getCurrentItem());
                 editor.apply();
                 //установит строку
@@ -266,6 +271,7 @@ public class SettingActivity extends Activity {
         yearStart.setCurrentItem(mySharedPreferences.getInt("yearStartIndx", 0));
         yearFinish.setCurrentItem(mySharedPreferences.getInt("yearFinishIndx", 0));
         scrolling = false;
+
         intervalText.setText(MakeIntervalString(centuryStart, centuryFinish, yearStart, yearFinish));
 
 
