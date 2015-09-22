@@ -2,12 +2,17 @@
 
     <!-- Base application theme. -->
     <style name="AppTheme" parent="Theme.AppCompat">
-
+        <item name="android:windowNoTitle">true</item>
+        <!--<item name="android:windowContentOverlay">@null</item>-->
+        <item name="android:windowBackground">@drawable/ic_launcher</item>
 
         <!-- Customize your theme here. -->
     </style>
     <style name="Dark" parent="ThemeOverlay.AppCompat.Dark">
-            </style>
+        <item name="android:windowNoTitle">true</item>
+        <!--<item name="android:windowContentOverlay">@null</item>-->
+        <item name="android:windowBackground">@drawable/ic_launcher</item>
+    </style>
 
 
 

@@ -318,6 +318,16 @@ public class SettingActivity extends Activity {
                 yF.setCurrentItem(yS.getCurrentItem());
             }
         }
+        if(cS.getCurrentItem() == indexOfFirstCenturyAC || cS.getCurrentItem() == indexOfFirstCenturyAC - 1){
+            if(yS.getCurrentItem() == 0){
+                yS.setCurrentItem(1);
+            }
+        }
+        if(cF.getCurrentItem() == indexOfFirstCenturyAC || cF.getCurrentItem() == indexOfFirstCenturyAC - 1){
+            if(yF.getCurrentItem() == 0){
+                yF.setCurrentItem(1);
+            }
+        }
     }
 
     private String MakeIntervalString(WheelView cS, WheelView cF, WheelView yS, WheelView yF){

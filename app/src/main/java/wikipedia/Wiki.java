@@ -585,7 +585,7 @@ public class Wiki implements Serializable{
                     String yearStr = line.substring(x, es);
                     String ACBC = line.substring(es + 1, y);
                     Integer year = Integer.parseInt(yearStr);
-                    if(ACBC == "\\u0433\\u043e\\u0434 \\u0434\\u043e \\u043d. \\u044d.")
+                    if(ACBC.contains("\\u0433\\u043e\\u0434 \\u0434\\u043e \\u043d. \\u044d."))
                         year *= -1;
 
                     xRev = line.indexOf("\"revid\":", y) + 8;
@@ -693,8 +693,8 @@ public class Wiki implements Serializable{
     }
 
     protected void logurl(String url, String method) {
-        logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", url);
-        //logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", new Object[]{url});
+        //logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", url);
+        logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", new Object[]{url});
     }
 
 //    public String resolveRedirect(String title) throws IOException

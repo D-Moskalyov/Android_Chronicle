@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
 
             android:id="@+id/settingsButton"
-            android:alpha="0.25"
+            android:alpha="0.5"
             android:drawable="@drawable/ic_launcher"
             android:onClick="onClickPreferences"
             android:layout_alignParentTop="true" android:layout_alignParentRight="true"
