@@ -89,9 +89,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     SimpleDateFormat dateFormat;
 
-    //GetPageAsync getPageAsync;
-    //GetPageRevIDAsync getPageRevIDAsync;
-    //GetPageTemplatesAsync getPageTemplatesAsync;
     LocationManager locationManager;
     ClusterManager<EventsMarker> mClusterManager;
 
@@ -104,6 +101,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<Integer> listForUpdate;
     ArrayList<Integer> listForNotUpdate;
 
+    InitAsync initAsync;
+    GetPageAsync getPageAsync;
+    GetNewPageRevIDAsync getNewPageRevIDAsync;
+    GetPageRevIDAsync getPageRevIDAsync;
+    GetPageTemplatesAsync getPageTemplatesAsync;
+    GetCoordsAsynk getCoordsAsynk;
+    GetPageRedirectAsync getPageRedirectAsync;
+    GetAddressPageForRedirectAsync getAddressPageForRedirectAsync;
+
     Context context;
 
     String LOG_TAG = "INF";
@@ -111,6 +117,25 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         context = getApplicationContext();
+        Object object = getLastCustomNonConfigurationInstance();
+        if(object != null) {
+            if (object.getClass() == InitAsync.class)
+                initAsync = (InitAsync) object;
+            else if (object.getClass() == GetPageAsync.class)
+                getPageAsync = (GetPageAsync) object;
+            else if (object.getClass() == GetNewPageRevIDAsync.class)
+                getNewPageRevIDAsync = (GetNewPageRevIDAsync) object;
+            else if (object.getClass() == GetPageRevIDAsync.class)
+                getPageRevIDAsync = (GetPageRevIDAsync) object;
+            else if (object.getClass() == GetPageTemplatesAsync.class)
+                getPageTemplatesAsync = (GetPageTemplatesAsync) object;
+            else if (object.getClass() == GetCoordsAsynk.class)
+                getCoordsAsynk = (GetCoordsAsynk) object;
+            else if (object.getClass() == GetPageRedirectAsync.class)
+                getPageRedirectAsync = (GetPageRedirectAsync) object;
+            else if (object.getClass() == GetAddressPageForRedirectAsync.class)
+                getAddressPageForRedirectAsync = (GetAddressPageForRedirectAsync) object;
+        }
         setContentView(R.layout.main_layout);
         firstCenturyAC = (int) getResources().getInteger(R.integer.firstCenturyAC);
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -216,12 +241,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             eventWithLexes = GetRedirectForLexemes(eventWithLexList);
         if (eventWithLexes.size() != 0)
             events = GetCoordForEvent(eventWithLexes);
-        if (events.size() != 0)
+        //if (events.size() != 0)
             WriteDB(events);
 
         MakeMarkers();
+        mClusterManager.cluster();
 
-        //InitAsync initAsync = new InitAsync();
+        //Log.i("onResume", "onResume");
+
+        //initAsync = new InitAsync();
         //initAsync.execute();
 //        try {
 //            Integer f = initAsync.get();
@@ -231,6 +259,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //            e.printStackTrace();
 //        }
 
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+    }
+
+    @Override
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+    }
+
+    @Override
+    protected void onPostResume() {
+        super.onPostResume();
+        //Log.i("onPostResume", "onPostResume");
     }
 
     @Override
@@ -276,6 +320,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     @Override
     public void onMapReady(GoogleMap map) {
+        Log.i("onMapReady", "onMapReady");
+
 
     }
 
@@ -317,13 +363,47 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         startActivityForResult(i, SHOW_PREFERENCES);
     }
 
+    @Override
+    public Object onRetainCustomNonConfigurationInstance() {
 
+        if(initAsync != null & initAsync.getStatus() == AsyncTask.Status.RUNNING)
+            return initAsync;
+        if(getPageAsync != null & getPageAsync.getStatus() == AsyncTask.Status.RUNNING)
+            return getPageAsync;
+        if(getNewPageRevIDAsync != null & getNewPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING)
+            return getNewPageRevIDAsync;
+        if(getPageRevIDAsync != null & getPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING)
+            return getPageRevIDAsync;
+        if(getPageTemplatesAsync != null & getPageTemplatesAsync.getStatus() == AsyncTask.Status.RUNNING)
+            return getPageTemplatesAsync;
+        if(getCoordsAsynk != null & getCoordsAsynk.getStatus() == AsyncTask.Status.RUNNING)
+            return getCoordsAsynk;
+        if(getPageRedirectAsync != null & getPageRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
+            return getPageRedirectAsync;
+        if(getAddressPageForRedirectAsync != null & getAddressPageForRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
+            return getAddressPageForRedirectAsync;
+
+        return null;
+//        List<Object> list = new ArrayList<Object>();
+//
+//        list.add(initAsync);
+//        list.add(getPageAsync);
+//        list.add(getNewPageRevIDAsync);
+//        list.add(getPageRevIDAsync);
+//        list.add(getPageTemplatesAsync);
+//        list.add(getCoordsAsynk);
+//        list.add(getPageRedirectAsync);
+//        list.add(getAddressPageForRedirectAsync);
+//
+//        return list;
+    }
 
     private void InitClusterer(){
         mClusterManager = new ClusterManager<EventsMarker>(this, map);
         mClusterManager.setRenderer(new EventRenderer());
         map.setOnCameraChangeListener(mClusterManager);
         map.setOnMarkerClickListener(mClusterManager);
+
 
         //addItems();
     }
@@ -412,7 +492,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
 
         Integer[] masForFirstInit = GetNewPageForInsertIntoDB(listForFirstInit);
-        GetPageAsync getPageAsync = new GetPageAsync();
+        getPageAsync = new GetPageAsync();
         getPageAsync.execute(masForFirstInit);
 
 //        while (getPageAsync.getStatus() != AsyncTask.Status.FINISHED){
@@ -420,7 +500,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        }
 
         try {
-            allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get(5, TimeUnit.SECONDS));
+            allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((masForFirstInit.length + 10) / 2, TimeUnit.SECONDS));
 
         } catch (TimeoutException e) {
             e.printStackTrace();
@@ -431,7 +511,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         Integer[] masForUpdate = GetMasForGetPageRevIDAsync(listForUpdate);
-        GetPageRevIDAsync getPageRevIDAsync = new GetPageRevIDAsync();
+        getPageRevIDAsync = new GetPageRevIDAsync();
         getPageRevIDAsync.execute(masForUpdate);
 
 //        while (getPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING){}
@@ -447,14 +527,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
 
+        if(listForUpdate.size() == 0)
+            return allEvntsByYear;
+
         Integer[] listForUpdateMas = listForUpdate.toArray(new Integer[listForUpdate.size()]);
-        GetPageAsync getPageUpdateAsync = new GetPageAsync();
-        getPageUpdateAsync.execute(listForUpdateMas);
+        getPageAsync = new GetPageAsync();
+        getPageAsync.execute(listForUpdateMas);
 
 //        while (getPageUpdateAsync.getStatus() == AsyncTask.Status.RUNNING){}
 
         try {
-            allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageUpdateAsync.get(100, TimeUnit.SECONDS));
+            allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((listForUpdateMas.length + 10) / 2, TimeUnit.SECONDS));
         } catch (TimeoutException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
@@ -470,7 +553,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(listForFirstInit != null & listForFirstInit.size() != 0) {
             Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
 
-            GetNewPageRevIDAsync getNewPageRevIDAsync = new GetNewPageRevIDAsync();
+            getNewPageRevIDAsync = new GetNewPageRevIDAsync();
             getNewPageRevIDAsync.execute(masForFirstInit);
 
             ArrayMap<Integer, Long> pagesWithID = null;
@@ -600,14 +683,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         String[] rawLexMas = rawLex.toArray(new String[rawLex.size()]);
 
-        GetPageRedirectAsync getPageRedirectAsync = new GetPageRedirectAsync();
+        getPageRedirectAsync = new GetPageRedirectAsync();
         getPageRedirectAsync.execute(rawLexMas);
 
         try {
             ArrayList<String> lexForRedirect = getPageRedirectAsync.get(10000, TimeUnit.MILLISECONDS);
 
             for(String lexForRedir : lexForRedirect){
-                GetAddressPageForRedirectAsync getAddressPageForRedirectAsync =
+                getAddressPageForRedirectAsync =
                         new GetAddressPageForRedirectAsync();
                 getAddressPageForRedirectAsync.execute(lexForRedir);
                 String lexToRedir = getAddressPageForRedirectAsync.get(5000, TimeUnit.MILLISECONDS);
@@ -615,14 +698,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 lexToRedir = lexToRedir.toLowerCase();
                 lexForRedir = lexForRedir.toLowerCase();
 
-                for(int i = 0; i < eventWithLexes.size(); i++){
+                if(lexToRedir.compareTo(lexForRedir) != 0) {
+                    for (int i = 0; i < eventWithLexes.size(); i++) {
 
-                    int indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
-                    while (indx >= 0) {
-                        eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
-                        indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                        int indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                        while (indx >= 0) {
+                            eventWithLexes.get(i).lexemes.set(indx, lexToRedir);
+                            indx = eventWithLexes.get(i).lexemes.indexOf(lexForRedir);
+                        }
+
                     }
-
                 }
             }
 
@@ -651,18 +736,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         String[] rawLexMas = set.toArray(new String[set.size()]);
 
-        GetPageTemplatesAsync getPageTemplatesAsync = new GetPageTemplatesAsync();
+        getPageTemplatesAsync = new GetPageTemplatesAsync();
         getPageTemplatesAsync.execute(rawLexMas);
 
         try {
-            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get(50000, TimeUnit.MILLISECONDS);
+            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get(rawLexMas.length / 2, TimeUnit.MILLISECONDS);
 
             String[] lexesWithCoordMas = lexesWithCoord.toArray(new String[lexesWithCoord.size()]);
 
-            GetCoordsAsynk getCoordsAsynk = new GetCoordsAsynk();
+            getCoordsAsynk = new GetCoordsAsynk();
             getCoordsAsynk.execute(lexesWithCoordMas);
 
-            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get(500000, TimeUnit.MILLISECONDS);
+            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get((lexesWithCoordMas.length + 10) / 2, TimeUnit.MILLISECONDS);
 
 
 
@@ -984,7 +1069,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //                    //ContentValues cv = new ContentValues();
 //
 //                    Integer[] listForUpdateMas = listForUpdate.toArray(new Integer[listForUpdate.size()]);
-//                    GetPageAsync getPageAsync = new GetPageAsync();
+//                    getPageAsync = new GetPageAsync();
 //                    getPageAsync.execute(listForUpdateMas);
 //
 ////                    try {
