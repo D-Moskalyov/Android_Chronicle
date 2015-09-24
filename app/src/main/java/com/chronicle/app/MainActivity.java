@@ -39,6 +39,7 @@ import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.view.DefaultClusterRenderer;
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.commons.lang3.time.DateFormatUtils;
+import org.apache.lucene.morphology.russian.RussianLetterDecoderEncoder;
 import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.apache.lucene.util.SortedVIntList;
 import org.json.JSONObject;
@@ -56,6 +57,8 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 //implements OnMapReadyCallback
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -113,29 +116,30 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     Context context;
 
     String LOG_TAG = "INF";
+    Logger logger = Logger.getLogger("chron");
 
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         context = getApplicationContext();
         Object object = getLastCustomNonConfigurationInstance();
-        if(object != null) {
-            if (object.getClass() == InitAsync.class)
-                initAsync = (InitAsync) object;
-            else if (object.getClass() == GetPageAsync.class)
-                getPageAsync = (GetPageAsync) object;
-            else if (object.getClass() == GetNewPageRevIDAsync.class)
-                getNewPageRevIDAsync = (GetNewPageRevIDAsync) object;
-            else if (object.getClass() == GetPageRevIDAsync.class)
-                getPageRevIDAsync = (GetPageRevIDAsync) object;
-            else if (object.getClass() == GetPageTemplatesAsync.class)
-                getPageTemplatesAsync = (GetPageTemplatesAsync) object;
-            else if (object.getClass() == GetCoordsAsynk.class)
-                getCoordsAsynk = (GetCoordsAsynk) object;
-            else if (object.getClass() == GetPageRedirectAsync.class)
-                getPageRedirectAsync = (GetPageRedirectAsync) object;
-            else if (object.getClass() == GetAddressPageForRedirectAsync.class)
-                getAddressPageForRedirectAsync = (GetAddressPageForRedirectAsync) object;
-        }
+//        if(object != null) {
+//            if (object.getClass() == InitAsync.class)
+//                initAsync = (InitAsync) object;
+//            else if (object.getClass() == GetPageAsync.class)
+//                getPageAsync = (GetPageAsync) object;
+//            else if (object.getClass() == GetNewPageRevIDAsync.class)
+//                getNewPageRevIDAsync = (GetNewPageRevIDAsync) object;
+//            else if (object.getClass() == GetPageRevIDAsync.class)
+//                getPageRevIDAsync = (GetPageRevIDAsync) object;
+//            else if (object.getClass() == GetPageTemplatesAsync.class)
+//                getPageTemplatesAsync = (GetPageTemplatesAsync) object;
+//            else if (object.getClass() == GetCoordsAsynk.class)
+//                getCoordsAsynk = (GetCoordsAsynk) object;
+//            else if (object.getClass() == GetPageRedirectAsync.class)
+//                getPageRedirectAsync = (GetPageRedirectAsync) object;
+//            else if (object.getClass() == GetAddressPageForRedirectAsync.class)
+//                getAddressPageForRedirectAsync = (GetAddressPageForRedirectAsync) object;
+//        }
         setContentView(R.layout.main_layout);
         firstCenturyAC = (int) getResources().getInteger(R.integer.firstCenturyAC);
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -157,13 +161,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         //onMapReady(map);
         wikipedia = new Wiki();
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
-
-//        LuceneMorphology luceneMorph = null;
-//        try {
-//            luceneMorph = new RussianLuceneMorphology();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
 //        wordBaseForms = luceneMorph.getMorphInfo("лотарингии");
 //        wordBaseForms = luceneMorph.getMorphInfo("гренландия");
 //        wordBaseForms = luceneMorph.getMorphInfo("китай");
@@ -366,22 +363,22 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public Object onRetainCustomNonConfigurationInstance() {
 
-        if(initAsync != null & initAsync.getStatus() == AsyncTask.Status.RUNNING)
-            return initAsync;
-        if(getPageAsync != null & getPageAsync.getStatus() == AsyncTask.Status.RUNNING)
-            return getPageAsync;
-        if(getNewPageRevIDAsync != null & getNewPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING)
-            return getNewPageRevIDAsync;
-        if(getPageRevIDAsync != null & getPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING)
-            return getPageRevIDAsync;
-        if(getPageTemplatesAsync != null & getPageTemplatesAsync.getStatus() == AsyncTask.Status.RUNNING)
-            return getPageTemplatesAsync;
-        if(getCoordsAsynk != null & getCoordsAsynk.getStatus() == AsyncTask.Status.RUNNING)
-            return getCoordsAsynk;
-        if(getPageRedirectAsync != null & getPageRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
-            return getPageRedirectAsync;
-        if(getAddressPageForRedirectAsync != null & getAddressPageForRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
-            return getAddressPageForRedirectAsync;
+//        if(initAsync != null & initAsync.getStatus() == AsyncTask.Status.RUNNING)
+//            return initAsync;
+//        if(getPageAsync != null & getPageAsync.getStatus() == AsyncTask.Status.RUNNING)
+//            return getPageAsync;
+//        if(getNewPageRevIDAsync != null & getNewPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING)
+//            return getNewPageRevIDAsync;
+//        if(getPageRevIDAsync != null & getPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING)
+//            return getPageRevIDAsync;
+//        if(getPageTemplatesAsync != null & getPageTemplatesAsync.getStatus() == AsyncTask.Status.RUNNING)
+//            return getPageTemplatesAsync;
+//        if(getCoordsAsynk != null & getCoordsAsynk.getStatus() == AsyncTask.Status.RUNNING)
+//            return getCoordsAsynk;
+//        if(getPageRedirectAsync != null & getPageRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
+//            return getPageRedirectAsync;
+//        if(getAddressPageForRedirectAsync != null & getAddressPageForRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
+//            return getAddressPageForRedirectAsync;
 
         return null;
 //        List<Object> list = new ArrayList<Object>();
@@ -510,7 +507,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             e.printStackTrace();
         }
 
-        Integer[] masForUpdate = GetMasForGetPageRevIDAsync(listForUpdate);
+        Integer[] masForUpdate = GetMasForGetPageRevID(listForUpdate);
         getPageRevIDAsync = new GetPageRevIDAsync();
         getPageRevIDAsync.execute(masForUpdate);
 
@@ -579,7 +576,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return new Integer[]{};
     }
 
-    private Integer[] GetMasForGetPageRevIDAsync(ArrayList<Integer> listForUpdate) {
+    private Integer[] GetMasForGetPageRevID(ArrayList<Integer> listForUpdate) {
         if(listForUpdate != null & listForUpdate.size() != 0) {
             return listForUpdate.toArray(new Integer[listForUpdate.size()]);
         }
@@ -740,14 +737,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         getPageTemplatesAsync.execute(rawLexMas);
 
         try {
-            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get(rawLexMas.length / 2, TimeUnit.MILLISECONDS);
+            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get((rawLexMas.length + 10) / 2, TimeUnit.SECONDS);
 
             String[] lexesWithCoordMas = lexesWithCoord.toArray(new String[lexesWithCoord.size()]);
 
             getCoordsAsynk = new GetCoordsAsynk();
             getCoordsAsynk.execute(lexesWithCoordMas);
 
-            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get((lexesWithCoordMas.length + 10) / 2, TimeUnit.MILLISECONDS);
+            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get((lexesWithCoordMas.length + 10) / 2, TimeUnit.SECONDS);
 
 
 
@@ -1875,6 +1872,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
+
+
+    protected void log(Level level, String method, String text)
+    {
+        logger.logp(level, "Chron", method, text);
+    }
 //    private void exportDB(){
 //        File sd = Environment.getExternalStorageDirectory();
 //        File data = Environment.getDataDirectory();

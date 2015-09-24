@@ -111,7 +111,7 @@ public class Wiki implements Serializable{
 
     protected void log(Level level, String method, String text)
     {
-        logger.logp(level, "Wiki", method, "[{0}] {1}", new Object[]{domain, text});
+        logger.logp(level, "Wiki", method, "[" + domain + "] {" + text + "}");
     }
 
     public String getPageText(String title) throws IOException
@@ -565,7 +565,6 @@ public class Wiki implements Serializable{
         try {
             String line = fetch(url.toString(), "getPageRevId");
 
-            //json.decode('unicode_escape')
             int x = 0;
             int y = 0;
             int xRev = 0;
@@ -588,15 +587,30 @@ public class Wiki implements Serializable{
                     if(ACBC.contains("\\u0433\\u043e\\u0434 \\u0434\\u043e \\u043d. \\u044d."))
                         year *= -1;
 
-                    xRev = line.indexOf("\"revid\":", y) + 8;
-                    yRev = line.indexOf(",", xRev);
+                    int indexofBracket = line.indexOf("}", x);
+                    Long revID = new Long(0);
+                    if(indexofBracket > -1) {
+                        if (!line.substring(x, indexofBracket).contains("\"missing\"")) {
 
-                    String revStr = line.substring(xRev, yRev);
-                    Long revID = Long.parseLong(revStr);
+                            xRev = line.indexOf("\"revid\":", y) + 8;
+                            yRev = line.indexOf(",", xRev);
 
-                    pagesWithID.put(year, revID);
+                            String revStr = line.substring(xRev, yRev);
+                            revID = Long.parseLong(revStr);
 
-                    start = yRev;
+                            pagesWithID.put(year, revID);
+
+                            start = yRev;
+                        } else {
+                            pagesWithID.put(year, new Long(0));
+                            start = indexofBracket;
+                        }
+                    }
+                    else {
+                        pagesWithID.put(year, revID);
+                        start = line.length() - 1;
+                    }
+
                     x = line.indexOf("\"title\":\"", start) + 9;
                 }
                 else{
@@ -693,8 +707,8 @@ public class Wiki implements Serializable{
     }
 
     protected void logurl(String url, String method) {
-        //logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", url);
-        logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", new Object[]{url});
+        logger.logp(Level.INFO, "Wiki", method, url);
+        //logger.logp(Level.INFO, "Wiki", method, "Fetching URL {0}", new Object[]{url});
     }
 
 //    public String resolveRedirect(String title) throws IOException
