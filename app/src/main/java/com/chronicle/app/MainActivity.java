@@ -17,6 +17,7 @@ import android.os.AsyncTask;
 import android.support.annotation.IntegerRes;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.util.ArrayMap;
+import android.text.Layout;
 import android.util.JsonReader;
 import android.util.Log;
 import android.util.Pair;
@@ -25,9 +26,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.os.Bundle;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.*;
 import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
@@ -114,6 +113,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     GetAddressPageForRedirectAsync getAddressPageForRedirectAsync;
 
     Context context;
+    EventsMarker clickedClusterItem;
 
     String LOG_TAG = "INF";
     Logger logger = Logger.getLogger("chron");
@@ -190,6 +190,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        long id = db.insert("Page", null, cv);
 //        dbHelper.close();
 
+
+        log(Level.INFO, "onCreate", "onCreate success");
     }
 
     @Override
@@ -256,28 +258,33 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //            e.printStackTrace();
 //        }
 
+        log(Level.INFO, "onResume", "onResume success");
     }
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        log(Level.INFO, "onWindowFocusChanged", "onWindowFocusChanged success");
     }
 
     @Override
     public void onAttachedToWindow() {
         super.onAttachedToWindow();
+        log(Level.INFO, "onAttachedToWindow", "onAttachedToWindow success");
     }
 
     @Override
     protected void onPostResume() {
         super.onPostResume();
         //Log.i("onPostResume", "onPostResume");
+        log(Level.INFO, "onPostResume", "onPostResume success");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         locationManager.removeUpdates(locationListener);
+        log(Level.INFO, "onPause", "onPause success");
     }
 //    private void addItems() {
 //
@@ -298,35 +305,40 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onStart() {
         super.onStart();
+        log(Level.INFO, "onStart", "onStart success");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        log(Level.INFO, "onDestroy", "onDestroy success");
     }
 
     @Override
     protected void onRestart() {
         super.onRestart();
+        log(Level.INFO, "onRestart", "onRestart success");
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        log(Level.INFO, "onStop", "onStop success");
     }
 
     @Override
     public void onMapReady(GoogleMap map) {
-        Log.i("onMapReady", "onMapReady");
 
-
+        log(Level.INFO, "onMapReady", "onMapReady success");
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         getMenuInflater().inflate(R.menu.menu_items, menu);
+        log(Level.INFO, "onCreateOptionsMenu", "onCreateOptionsMenu success");
         return true;
+
     }
 
     @Override
@@ -336,6 +348,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             case R.id.interval :
                 Toast.makeText(getApplicationContext(), "Yes", Toast.LENGTH_SHORT).show();
         }
+        log(Level.INFO, "onOptionsItemSelected", "onOptionsItemSelected success");
         return true;
     }
 
@@ -344,6 +357,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(requestCode == SHOW_PREFERENCES) {
             super.onActivityResult(requestCode, resultCode, data);
         }
+        log(Level.INFO, "onActivityResult", "onActivityResult success");
     }
 
 
@@ -358,6 +372,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         Intent i = new Intent(this, SettingActivity.class);
         startActivityForResult(i, SHOW_PREFERENCES);
+        log(Level.INFO, "onClickPreferences", "onClickPreferences success");
     }
 
     @Override
@@ -380,6 +395,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        if(getAddressPageForRedirectAsync != null & getAddressPageForRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
 //            return getAddressPageForRedirectAsync;
 
+        log(Level.INFO, "onRetainCustomNonConfigurationInstance", "onRetainCustomNonConfigurationInstance success");
         return null;
 //        List<Object> list = new ArrayList<Object>();
 //
@@ -400,8 +416,30 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mClusterManager.setRenderer(new EventRenderer());
         map.setOnCameraChangeListener(mClusterManager);
         map.setOnMarkerClickListener(mClusterManager);
+        map.setOnInfoWindowClickListener(mClusterManager);
+        map.setInfoWindowAdapter(mClusterManager.getMarkerManager());
+        mClusterManager.getMarkerCollection().setOnInfoWindowAdapter(new MyInfoWindowAdapter());
+        mClusterManager.setOnClusterItemClickListener(new ClusterManager.OnClusterItemClickListener<EventsMarker>() {
+            @Override
+            public boolean onClusterItemClick(EventsMarker item) {
+                clickedClusterItem = item;
+                return false;
+            }
+        });
 
+        mClusterManager.setOnClusterClickListener(new ClusterManager.OnClusterClickListener<EventsMarker>() {
+            @Override
+            public boolean onClusterClick(Cluster<EventsMarker> cluster) {
+                return false;
+            }
+        });
+        mClusterManager.setOnClusterInfoWindowClickListener(new ClusterManager.OnClusterInfoWindowClickListener<EventsMarker>() {
+            @Override
+            public void onClusterInfoWindowClick(Cluster<EventsMarker> cluster) {
 
+            }
+        });
+        log(Level.INFO, "InitClusterer", "InitClusterer success");
         //addItems();
     }
 
@@ -426,6 +464,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         else{
             globalYearFinish = (centuryFinish - firstCenturyAC) * 100 + yearFinish;
         }
+        log(Level.INFO, "SetStartFinishYear", "SetStartFinishYear success");
     }
 
     private void GetPagesForUpdateDeleteCreate(){
@@ -448,7 +487,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 int yearFromDB = cursor.getInt(cursor.getColumnIndex("year"));
                 String str = cursor.getString(cursor.getColumnIndex("lastUpdate"));
 
-                Log.d(LOG_TAG, str);
+                //Log.d(LOG_TAG, str);
                 try {
                     Calendar thatDay = Calendar.getInstance(TimeZone.getTimeZone("Europe/Kiev"));
                     dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -462,7 +501,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
 
-                    if (diff / (60 * 1000) > 30) {//больше 30 минут
+                    if (diff / (60 * 1000) > 1200) {
                         listForUpdate.add(yearFromDB);
                     } else {
                         listForNotUpdate.add(yearFromDB);
@@ -483,67 +522,73 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         cursor.close();
         dbHelper.close();
+        log(Level.INFO, "GetPagesForUpdateDeleteCreate", "GetPagesForUpdateDeleteCreate success");
     }
 
     private ArrayMap<Integer, String> GetPageForParse(ArrayList<Integer> listForFirstInit, ArrayList<Integer>listForUpdate){
-        ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
+        try {
+            ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
 
-        Integer[] masForFirstInit = GetNewPageForInsertIntoDB(listForFirstInit);
-        getPageAsync = new GetPageAsync();
-        getPageAsync.execute(masForFirstInit);
+            Integer[] masForFirstInit = GetNewPageForInsertIntoDB(listForFirstInit);
+            getPageAsync = new GetPageAsync();
+            getPageAsync.execute(masForFirstInit);
 
 //        while (getPageAsync.getStatus() != AsyncTask.Status.FINISHED){
 //
 //        }
 
-        try {
-            allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((masForFirstInit.length + 10) / 2, TimeUnit.SECONDS));
+            try {
+                allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((masForFirstInit.length + 10) / 2, TimeUnit.SECONDS));
 
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+            } catch (TimeoutException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
 
-        Integer[] masForUpdate = GetMasForGetPageRevID(listForUpdate);
-        getPageRevIDAsync = new GetPageRevIDAsync();
-        getPageRevIDAsync.execute(masForUpdate);
+            Integer[] masForUpdate = GetMasForGetPageRevID(listForUpdate);
+            getPageRevIDAsync = new GetPageRevIDAsync();
+            getPageRevIDAsync.execute(masForUpdate);
 
 //        while (getPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING){}
 
-        listForUpdate = new ArrayList<Integer>();
-        try {
-            listForUpdate.addAll(getPageRevIDAsync.get(5, TimeUnit.SECONDS));
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+            listForUpdate = new ArrayList<Integer>();
+            try {
+                listForUpdate.addAll(getPageRevIDAsync.get(5, TimeUnit.SECONDS));
+            } catch (TimeoutException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
 
-        if(listForUpdate.size() == 0)
-            return allEvntsByYear;
+            if (listForUpdate.size() == 0)
+                return allEvntsByYear;
 
-        Integer[] listForUpdateMas = listForUpdate.toArray(new Integer[listForUpdate.size()]);
-        getPageAsync = new GetPageAsync();
-        getPageAsync.execute(listForUpdateMas);
+            Integer[] listForUpdateMas = listForUpdate.toArray(new Integer[listForUpdate.size()]);
+            getPageAsync = new GetPageAsync();
+            getPageAsync.execute(listForUpdateMas);
 
 //        while (getPageUpdateAsync.getStatus() == AsyncTask.Status.RUNNING){}
 
-        try {
-            allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((listForUpdateMas.length + 10) / 2, TimeUnit.SECONDS));
-        } catch (TimeoutException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+            try {
+                allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((listForUpdateMas.length + 10) / 2, TimeUnit.SECONDS));
+            } catch (TimeoutException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            }
 
-        return allEvntsByYear;
+
+            return allEvntsByYear;
+        }finally {
+            log(Level.INFO, "GetPageForParse", "GetPageForParse success");
+        }
     }
 
     private Integer[] GetNewPageForInsertIntoDB(ArrayList<Integer> listForFirstInit){
@@ -570,9 +615,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 pagesWithID.keyAt(i);
                 pagesForIsertDB.add(new PageModel(pagesWithID.keyAt(i), pagesWithID.valueAt(i), dateFormat.format(date)));
             }
-
+            log(Level.INFO, "GetNewPageForInsertIntoDB", "GetNewPageForInsertIntoDB success");
             return listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
         }
+        log(Level.INFO, "GetNewPageForInsertIntoDB", "GetNewPageForInsertIntoDB success");
         return new Integer[]{};
     }
 
@@ -580,6 +626,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(listForUpdate != null & listForUpdate.size() != 0) {
             return listForUpdate.toArray(new Integer[listForUpdate.size()]);
         }
+        log(Level.INFO, "GetMasForGetPageRevID", "GetMasForGetPageRevID success");
         return new Integer[]{};
     }
 
@@ -665,7 +712,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             eventWithLexList.add(new EventWithLex(evModel, lexemes));
         }
-
+        log(Level.INFO, "ParseLexFromEvents", "ParseLexFromEvents success");
         return eventWithLexList;
 
     }
@@ -684,7 +731,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         getPageRedirectAsync.execute(rawLexMas);
 
         try {
-            ArrayList<String> lexForRedirect = getPageRedirectAsync.get(10000, TimeUnit.MILLISECONDS);
+            ArrayList<String> lexForRedirect = getPageRedirectAsync.get((rawLexMas.length + 10) / 2, TimeUnit.SECONDS);
 
             for(String lexForRedir : lexForRedirect){
                 getAddressPageForRedirectAsync =
@@ -715,6 +762,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         } catch (TimeoutException e) {
             e.printStackTrace();
         } finally {
+            log(Level.INFO, "GetRedirectForLexemes", "GetRedirectForLexemes success");
             return eventWithLexes;
         }
 
@@ -776,8 +824,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         } catch (TimeoutException e) {
             e.printStackTrace();
         } finally {
+            log(Level.INFO, "GetCoordForEvent", "GetCoordForEvent success");
             return events;
         }
+
     }
 
 
@@ -786,6 +836,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onLocationChanged(Location location) {
             ShowLocation(location);
+            log(Level.INFO, "onLocationChanged", "onLocationChanged success");
         }
 
         @Override
@@ -796,17 +847,20 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             else if(provider.equals(locationManager.NETWORK_PROVIDER)){
                 //??????? ?? ?????????
             }
+            log(Level.INFO, "onStatusChanged", "onStatusChanged success");
         }
 
         @Override
         public void onProviderEnabled(String provider) {
             CheckEnable();
             ShowLocation(locationManager.getLastKnownLocation(provider));
+            log(Level.INFO, "onProviderEnabled", "onProviderEnabled success");
         }
 
         @Override
         public void onProviderDisabled(String provider) {
             CheckEnable();
+            log(Level.INFO, "onProviderDisabled", "onProviderDisabled success");
         }
     };
 
@@ -819,10 +873,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         else if(location.getProvider().equals(locationManager.NETWORK_PROVIDER)){
             //??????? ?? ??????
         }
-
+        log(Level.INFO, "ShowLocation", "ShowLocation success");
     }
 
     private String FormatLocation(Location location){
+        log(Level.INFO, "FormatLocation", "FormatLocation success");
         if(location == null)
             return "";
         return String.format(Double.toString(location.getLatitude()), Double.toString(location.getLongitude())
@@ -830,7 +885,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void CheckEnable(){
-
+        log(Level.INFO, "CheckEnable", "CheckEnable success");
     }
 
 
@@ -840,7 +895,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         protected Integer doInBackground(Void... params) {
 
 
-
+            log(Level.INFO, "doInBackground", "InitAsync -> doInBackground success");
             return 1;
         }
 
@@ -848,8 +903,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         protected void onPostExecute(Integer integer) {
             super.onPostExecute(integer);
 
-
+            log(Level.INFO, "doInBackground", "InitAsync -> onPostExecute success");
         }
+
     }
 
     private class GetPageAsync extends AsyncTask<Integer, String, ArrayMap<Integer, String>> {
@@ -890,7 +946,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         !pages.valueAt(i).contains("#redirect"))
                     allEvntsByYear.put(pages.keyAt(i), pages.valueAt(i));
             }
-
+            log(Level.INFO, "doInBackground", "GetPageAsync -> doInBackground success");
             return allEvntsByYear;
         }
 
@@ -914,6 +970,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //
 //            ParseEvent(allEvntsByYear);
 //        }
+
     }
 
     private class GetNewPageRevIDAsync extends AsyncTask<Integer, String, ArrayMap<Integer, Long>> {
@@ -941,7 +998,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
                 pages.clear();
             }
-
+            log(Level.INFO, "doInBackground", "GetNewPageRevIDAsync -> doInBackground success");
             return pagesWithID;
         }
     }
@@ -1017,7 +1074,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 //return listForUpdateInner;
             }
             dbHelper.close();
-
+            log(Level.INFO, "doInBackground", "GetPageRevIDAsync -> doInBackground success");
             return listForUpdateInner;
 
         }
@@ -1127,7 +1184,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //            }
 //            else
 //                return "";
-
+            log(Level.INFO, "doInBackground", "GetPageTemplatesAsync -> doInBackground success");
             return titleWithCoordTemplate;
         }
 
@@ -1203,7 +1260,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 tempList.clear();
                 coord.clear();
             }
-
+            log(Level.INFO, "doInBackground", "GetCoordsAsynk -> doInBackground success");
             return  placesWithCoord;
         }
     }
@@ -1235,7 +1292,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             for(int i = 0; i < titleWithRedirect.size(); i++){
                 titleWithRedirect.set(i, StringEscapeUtils.unescapeJava(titleWithRedirect.get(i)));
             }
-
+            log(Level.INFO, "doInBackground", "GetPageRedirectAsync -> doInBackground success");
             return titleWithRedirect;
         }
     }
@@ -1243,7 +1300,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private class GetAddressPageForRedirectAsync extends AsyncTask<String, String, String>{
         @Override
         protected String doInBackground(String... params) {
-            return wikipedia.getRedirectForPage(params[0]);
+            String str = wikipedia.getRedirectForPage(params[0]);
+            log(Level.INFO, "doInBackground", "GetAddressPageForRedirectAsync -> doInBackground success");
+            return str;
         }
     }
 
@@ -1305,7 +1364,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         db.endTransaction();
 
         dbHelper.close();
-
+        log(Level.INFO, "WriteDB", "WriteDB success");
     }
 
     private void MakeMarkers() {
@@ -1399,6 +1458,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         mClusterManager.addItems(eventsMarkers);
+        log(Level.INFO, "MakeMarkers", "MakeMarkers success");
     }
 
 
@@ -1577,7 +1637,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 //        coord[5] = ((String)(coord[5])).trim();
 //        coord[6] = ((String)(coord[6])).trim();
 //        coord[7] = ((String)(coord[7])).trim();
-
+        log(Level.INFO, "ParseCoord", "ParseCoord success");
         return new Coordinate(latitude, longitude);
     }
 
@@ -1590,12 +1650,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         int finish;
         int startEv;
         int finishEv;
-        int startRef;
-        int finishRef;
         boolean isLast = false;
+        boolean isDate = false;
 
         for(int i = 0; i < eventsByYear.size(); i++) {
-
+            isLast = false;
             String events = eventsByYear.valueAt(i);
 
             start = events.indexOf("== —обыти€ ==");
@@ -1610,104 +1669,65 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             while (finishEv > 0) {
 
                 if ((finishEv - startEv) != 1 & (finishEv - startEv) != 0) {
+                    if ((finishEv - startEv) > 3) {
+                        if (finishEv - startEv > 18) {//не дата с последующим разбором
+                            isDate = false;
+                            eventItem = events.substring(startEv + 2, finishEv - 1);
 
-                    if (finishEv - startEv > 17) {
-                        eventItem = events.substring(startEv + 2, finishEv - 1);
+                            eventItem = ParseEventHelper(eventItem);
 
-                        int indxSlash = eventItem.indexOf("==");
-                        if (indxSlash != -1) {
-                            eventItem = eventItem.substring(0, indxSlash - 2);
-                        }
+                            log(Level.INFO, "ParseEvent", "new EventModel " + Integer.toString(eventsByYear.keyAt(i)) +
+                                    ": " + eventItem);
+                            eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
 
-
-                        startRef = eventItem.indexOf("<ref");
-                        while (startRef != -1) {
-                            startRef = eventItem.indexOf("<ref>");
-                            if (startRef != -1) {
-                                finishRef = eventItem.indexOf("</ref>", startRef);
-                                if(finishRef < 0)
-                                    eventItem = eventItem.substring(0, startRef);
-                                else
-                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
-
-                                startRef = eventItem.indexOf("<ref");
-                            } else {
-                                startRef = eventItem.indexOf("<ref");
-                                finishRef = eventItem.indexOf("/>", startRef);
-                                if (finishRef != -1) {
-                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
-                                } else {
-                                    finishRef = eventItem.indexOf("</ref>", startRef);
-                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
-                                }
-                                startRef = eventItem.indexOf("<ref");
+                        } else { //дата с последующим разбором
+                            String str = events.substring(startEv + 2, finishEv - 1).trim();
+                            if(str.compareTo("") != 0) {
+                                isDate = true;
+                                eventItem = events.substring(startEv + 4, finishEv - 3) + " Ч ";
                             }
-
                         }
-
-                        while (eventItem.contains("[[")) {
-                            eventItem = TrimHooks(eventItem);
-                        }
-
-                        eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
-
-                    } else {
-                        eventItem = events.substring(startEv + 4, finishEv - 3) + " Ч ";
                     }
-
                 } else {
-                    if (!isLast) {
+                    if (!isLast & isDate) {
                         startEv++;
                         finishEv = events.indexOf("*", startEv + 1);
 
                         int indxDef = eventItem.indexOf(" Ч ");
 
-                        if (indxDef != -1)
-                            eventItem = eventItem.substring(0, indxDef + 3) +
-                                    events.substring(startEv + 2, finishEv - 1);
-                        else
-                            eventItem = eventItem +
-                                    events.substring(startEv + 2, finishEv - 1);
+                        if (indxDef != -1) {
+                            if(finishEv > -1)
+                                eventItem = eventItem.substring(0, indxDef + 3) +
+                                        events.substring(startEv + 2, finishEv - 1);
 
-                        int indxSlash = eventItem.indexOf("==");
-                        if (indxSlash != -1) {
-                            eventItem = eventItem.substring(0, indxSlash - 2);
-                        }
-
-                        startRef = eventItem.indexOf("<ref");
-                        while (startRef != -1) {
-                            startRef = eventItem.indexOf("<ref>");
-                            if (startRef != -1) {
-                                finishRef = eventItem.indexOf("</ref>", startRef);
-                                eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
-
-                                startRef = eventItem.indexOf("<ref");
-                            } else {
-                                startRef = eventItem.indexOf("<ref");
-                                finishRef = eventItem.indexOf("/>", startRef);
-                                if (finishRef != -1) {
-                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
-                                } else {
-                                    finishRef = eventItem.indexOf("</ref>", startRef);
-                                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
-                                }
-                                startRef = eventItem.indexOf("<ref");
+                            else {
+                                eventItem = eventItem.substring(0, indxDef + 3) +
+                                        events.substring(startEv + 2);
+                                finishEv = events.length() - 2;
                             }
-
+                        }
+                        else {
+                            if(finishEv > -1)
+                                eventItem = eventItem +
+                                    events.substring(startEv + 2, finishEv - 1);
+                            else {
+                                eventItem = eventItem +
+                                        events.substring(startEv + 2);
+                                finishEv = events.length() - 2;
+                            }
                         }
 
-                        while (eventItem.contains("[[")) {
-                            eventItem = TrimHooks(eventItem);
-                        }
+                        eventItem = ParseEventHelper(eventItem);
 
-
+                        log(Level.INFO, "ParseEvent", "new EventModel " + Integer.toString(eventsByYear.keyAt(i)) +
+                                ": " + eventItem);
                         eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
                     }
                 }
 
                 startEv = finishEv;
                 finishEv = events.indexOf("*", startEv + 1);
-                if(finishEv < 0 & !isLast){
+                if (finishEv < 0 & !isLast) {
                     finishEv = events.indexOf("\n", startEv + 1) + 1;
                     isLast = true;
                 }
@@ -1752,11 +1772,54 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 //db.delete("Event", "year = ? and text = ?", new String[]{String.valueOf(evntMod.year), evntMod.text});
             }
         }//!!! ќƒ ¬џЎ≈ Ќ≈ ѕ–ќ¬≈–≈Ќ!!!
-
+        log(Level.INFO, "ParseEvent", "ParseEvent success");
         return eventsToParseLex;
 
     }
 
+    private String ParseEventHelper(String eventItem){
+        int startRef;
+        int finishRef;
+
+        int indxSlash = eventItem.indexOf("==");
+        if (indxSlash != -1) {
+            eventItem = eventItem.substring(0, indxSlash - 2);
+        }
+
+
+        startRef = eventItem.indexOf("<ref");
+        while (startRef != -1) {
+            startRef = eventItem.indexOf("<ref>");
+            if (startRef != -1) {
+                finishRef = eventItem.indexOf("</ref>", startRef);
+                if (finishRef < 0)
+                    eventItem = eventItem.substring(0, startRef);
+                else
+                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+
+                startRef = eventItem.indexOf("<ref");
+            } else {
+                startRef = eventItem.indexOf("<ref");
+                finishRef = eventItem.indexOf("/>", startRef);
+                if (finishRef != -1) {
+                    eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 2);
+                } else {
+                    finishRef = eventItem.indexOf("</ref>", startRef);
+                    if (finishRef > -1)
+                        eventItem = eventItem.substring(0, startRef) + eventItem.substring(finishRef + 6);
+                    else
+                        eventItem = eventItem.substring(0, startRef);
+                }
+                startRef = eventItem.indexOf("<ref");
+            }
+
+        }
+
+        while (eventItem.contains("[[")) {
+            eventItem = TrimHooks(eventItem);
+        }
+        return eventItem;
+    }
 
 
     private String PunctuationHook(String word){
@@ -1772,37 +1835,43 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         word = word.replace("Ч", "");
         word = word.replace("\"", "");
         word = word.replace("'", "");
-
+        log(Level.INFO, "PunctuationHook", "PunctuationHook success");
         return  word;
     }
 
-    private String TrimHooks(String evnt){
+    private String TrimHooks(String evnt) {
 
         //int startToNext = start;
+        try {
+            int startEv = evnt.indexOf("[[");
+            if (startEv != -1) {
+                int finishEv = evnt.indexOf("]]", startEv + 2);
+                //startToNext =+ 4;
 
-        int startEv = evnt.indexOf("[[");
-        if(startEv != -1){
-            int finishEv = evnt.indexOf("]]", startEv + 2);
-            //startToNext =+ 4;
+                if (finishEv != -1) {
+                    String inHooks = evnt.substring(startEv + 2, finishEv);
+                    int separ = inHooks.indexOf("|");
+                    if (separ != -1) {
+                        //startToNext += inHooks.length() - separ - 1;
+                        inHooks = inHooks.substring(separ + 1, inHooks.length());
+                    }
 
-            if(finishEv != -1) {
-                String inHooks = evnt.substring(startEv + 2, finishEv);
-                int separ = inHooks.indexOf("|");
-                if (separ != -1) {
-                    //startToNext += inHooks.length() - separ - 1;
-                    inHooks = inHooks.substring(separ + 1, inHooks.length());
+                    evnt = evnt.substring(0, startEv) + inHooks + evnt.substring(finishEv + 2, evnt.length());
                 }
-
-                evnt = evnt.substring(0, startEv) + inHooks + evnt.substring(finishEv + 2, evnt.length());
+                else {
+                    //TrimHooks(evnt);
+                    evnt =  evnt.substring(0, startEv) + evnt.substring(startEv + 2, evnt.length() - 1);
+                }
             }
-            //TrimHooks(evnt);
-            return evnt;
-        }
 //        else {
 //            String hi = evnt;
 //            return;
 //        }
-        return "";
+            return evnt;
+        } finally {
+            log(Level.INFO, "TrimHooks", "TrimHooks success");
+        }
+
     }
 
 
@@ -1811,22 +1880,23 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         public DBHelper(Context context){
             super(context, "chronDB", null, 1);
+            log(Level.INFO, "DBHelper", "DBHelper -> DBHelper success");
         }
 
         @Override
         public void onCreate(SQLiteDatabase db) {
-            Log.d(LOG_TAG, "--- onCreate ---");
             db.execSQL("create table Pages " +
                     "(year integer not null unique, " + "revisionID integer, " + "lastUpdate text)");
 
             db.execSQL("create table Events " +
                     "(year integer, " + "event text, " +
                     "latitude double, " + "longitude double)");
+            log(Level.INFO, "onCreate", "DBHelper -> onCreate success");
         }
 
         @Override
         public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
+            log(Level.INFO, "onUpgrade", "DBHelper -> onUpgrade success");
         }
     }
 
@@ -1840,13 +1910,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             mImageView = new ImageView(getApplicationContext());
             mDimension = (int) getResources().getDimension(R.dimen.custom_profile_image);
             mImageView.setLayoutParams(new ViewGroup.LayoutParams(mDimension, mDimension));
+            log(Level.INFO, "EventRenderer", "EventRenderer -> EventRenderer success");
         }
 
         @Override
         protected void onBeforeClusterItemRendered(EventsMarker item, MarkerOptions markerOptions) {
             mImageView.setImageResource(item.iconID);
-            markerOptions.icon(BitmapDescriptorFactory.fromResource(item.iconID)).title(item.eventWithYears
-                    .get(0).text);
+            markerOptions.icon(BitmapDescriptorFactory.fromResource(item.iconID))
+                    .title(item.eventWithYears.get(0).text)
+                    .snippet(Integer.toString(item.eventWithYears.get(0).year));
+            log(Level.INFO, "onBeforeClusterItemRendered", "EventRenderer -> onBeforeClusterItemRendered success");
         }
 
 //        @Override
@@ -1857,6 +1930,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         protected boolean shouldRenderAsCluster(Cluster cluster) {
             // Always render clusters.
+            log(Level.INFO, "shouldRenderAsCluster", "EventRenderer -> shouldRenderAsCluster success");
             return cluster.getSize() > 1;
         }
     }
@@ -1869,6 +1943,74 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         public EventWithLex(EventModel evModel, ArrayList<String> lxms){
             evntModel= evModel;
             lexemes = lxms;
+            log(Level.INFO, "EventWithLex", "EventWithLex -> EventWithLex success");
+        }
+    }
+
+    private class MyInfoWindowAdapter implements GoogleMap.InfoWindowAdapter {
+        @Override
+        public View getInfoContents(Marker marker) {
+            View v = getLayoutInflater().inflate(R.layout.info_window_layout, null);
+            LinearLayout layout = (LinearLayout) v.findViewById(R.id.main_layout);
+            List<EventWithYear> eventWithYearList = new ArrayList<EventWithYear>();
+            if (clickedClusterItem != null) {
+                eventWithYearList = clickedClusterItem.getEventWithYears();
+
+                for (EventWithYear eventWithYear : eventWithYearList) {
+                    TextView tViewEvent = new TextView(context);
+                    TextView tViewDate = new TextView(context);
+                    tViewEvent.setTextColor(getResources().getColor(R.color.black));
+                    tViewDate.setTextColor(getResources().getColor(R.color.grey));
+                    tViewDate.setGravity(View.TEXT_ALIGNMENT_VIEW_END);
+                    tViewDate.setTextSize(11);
+                    tViewEvent.setMaxHeight(50);
+                    tViewEvent.setMaxWidth(300);
+                    tViewDate.setMaxHeight(50);
+                    tViewDate.setMaxWidth(300);
+                    tViewDate.setMaxWidth(300);
+                    tViewEvent.setText(eventWithYear.text);
+                    tViewDate.setText(Integer.toString(eventWithYear.year));
+
+                    layout.addView(tViewEvent);
+                    layout.addView(tViewDate);
+                }
+
+                return v;
+            }
+            return null;
+
+        }
+
+        @Override
+        public View getInfoWindow(Marker marker) {
+//            View v = getLayoutInflater().inflate(R.layout.info_window_layout, null);
+//            LinearLayout layout = (LinearLayout) v.findViewById(R.id.main_layout);
+//            List<EventWithYear> eventWithYearList = new ArrayList<EventWithYear>();
+//            if (clickedClusterItem != null) {
+//                eventWithYearList = clickedClusterItem.getEventWithYears();
+//
+//                for (EventWithYear eventWithYear : eventWithYearList) {
+//                    TextView tViewEvent = new TextView(context);
+//                    TextView tViewDate = new TextView(context);
+//                    tViewEvent.setTextColor(getResources().getColor(R.color.black));
+//                    tViewDate.setTextColor(getResources().getColor(R.color.grey));
+//                    tViewDate.setGravity(View.TEXT_ALIGNMENT_VIEW_END);
+//                    tViewDate.setTextSize(11);
+//                    tViewEvent.setMaxHeight(50);
+//                    tViewEvent.setMaxWidth(300);
+//                    tViewDate.setMaxHeight(50);
+//                    tViewDate.setMaxWidth(300);
+//                    tViewDate.setMaxWidth(300);
+//                    tViewEvent.setText(eventWithYear.text);
+//                    tViewDate.setText(Integer.toString(eventWithYear.year));
+//
+//                    layout.addView(tViewEvent);
+//                    layout.addView(tViewDate);
+//                }
+//
+//                return v;
+//            }
+            return null;
         }
     }
 
