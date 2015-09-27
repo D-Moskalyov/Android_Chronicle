@@ -45,6 +45,10 @@
             </intent-filter>
         </activity>
 
+        <activity android:name=".ListEventsActivity"
+                  android:label="ListEventsActivity" >
+        </activity>
+
         <activity android:name=".WheelViewActivity"
                   android:label="WheelViewActivity" >
             <intent-filter>

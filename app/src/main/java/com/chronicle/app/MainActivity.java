@@ -14,6 +14,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Parcelable;
 import android.support.annotation.IntegerRes;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.util.ArrayMap;
@@ -21,11 +22,8 @@ import android.text.Layout;
 import android.util.JsonReader;
 import android.util.Log;
 import android.util.Pair;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
+import android.view.*;
 import android.os.Bundle;
-import android.view.ViewGroup;
 import android.widget.*;
 import com.google.android.gms.maps.*;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -98,6 +96,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     List<PageModel> pagesForUdateDB;
     List<PageModel> pagesForDeleteDB;
     List<EventModel> eventsForDeleteDB;
+
+    ArrayList<EventWithYear> eventWithYearList;
 
     ArrayList<Integer> listForFirstInit;
     ArrayList<Integer> listForUpdate;
@@ -426,6 +426,23 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 return false;
             }
         });
+        mClusterManager.setOnClusterItemInfoWindowClickListener(new ClusterManager.OnClusterItemInfoWindowClickListener<EventsMarker>() {
+            @Override
+            public void onClusterItemInfoWindowClick(EventsMarker item) {
+                //ListEventsActivity listEventsActivity = new ListEventsActivity(item);
+                Intent intent = new Intent(context, ListEventsActivity.class);
+                intent.putExtra("eventWithYearList", eventWithYearList);
+                startActivity(intent);
+
+                //intent.putParcelableArrayListExtra("eventWithYearList", eventWithYearList);
+                //intent.putExtra("eventWithYearArray", eventWithYearList.toArray());
+                //Bundle mBundle = new Bundle();
+                //mBundle.putParcelable("eventWithYear", eventWithYearList.get(0));
+                //intent.putExtras(mBundle);
+                //intent.putExtra("eventWithYear", eventWithYearList.get(0));
+                //listEventsActivity.startActivity();
+            }
+        });
 
         mClusterManager.setOnClusterClickListener(new ClusterManager.OnClusterClickListener<EventsMarker>() {
             @Override
@@ -692,7 +709,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                         if(pOS == noun){
                             lex = wordBaseForms.get(0).substring(0, pos - 3);
-                            lexemes.add(lex);
+                            if(lex.compareTo("ËÁ‡") != 0)
+                                lexemes.add(lex);
 //                        getPageTemplatesAsync = new GetPageTemplatesAsync();
 //                        String utf8lex = "";
 //                        try {
@@ -868,10 +886,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(location == null)
             return;
         if(location.getProvider().equals(locationManager.GPS_PROVIDER)){
-            //??????? ?? ??????
+
         }
         else if(location.getProvider().equals(locationManager.NETWORK_PROVIDER)){
-            //??????? ?? ??????
+
         }
         log(Level.INFO, "ShowLocation", "ShowLocation success");
     }
@@ -1328,14 +1346,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             cv.clear();
         }
 
-        for(EventModel eventModel: eventsForDeleteDB){//!!! Œƒ Õ»∆≈ Õ≈ œ–Œ¬≈–≈Õ!!!
-            db.delete("Events", "year = ? and text = ?",
-                    new String[]{String.valueOf(eventModel.year), eventModel.text});
-        }//!!! Œƒ ¬€ÿ≈ Õ≈ œ–Œ¬≈–≈Õ!!!
+        for(EventModel eventModel: eventsForDeleteDB){
+//            db.delete("Events", "year = ? and text = ?",
+//                    new String[]{String.valueOf(eventModel.year), String.valueOf(eventModel.text)});
+            db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
+        }
 
         for(PageModel pageModel : pagesForDeleteDB){
-            db.delete("Pages", "year = ? and revisionID = ?",
-                    new String[]{String.valueOf(pageModel.year), String.valueOf(pageModel.revID)});
+//            db.delete("Pages", "year = ? and revisionID = ?",
+//                    new String[]{String.valueOf(pageModel.year), String.valueOf(pageModel.revID)});
+            db.delete("Pages", "year = " + String.valueOf(pageModel.year) +
+                    " and revisionID = " + String.valueOf(pageModel.revID), null);
         }
 
         for(PageModel pageModel : pagesForUdateDB) {
@@ -1449,7 +1470,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     break;
 
                 default:
-                    eventsMarkers.get(i).iconID = R.drawable.number_11;
+                    eventsMarkers.get(i).iconID = R.drawable.number_10_;
                     break;
 
 //            String path = "mapicons-numbers/number_" + eventsMarkers.get(i).eventWithYears.size() + ".png";
@@ -1658,7 +1679,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             String events = eventsByYear.valueAt(i);
 
             start = events.indexOf("== —Ó·˚ÚËˇ ==");
-            finish = events.indexOf(" ==\n", start + 14);
+            if(start < 0) {
+                start = events.indexOf("== ŒÊË‰‡ÂÏ˚Â ÒÓ·˚ÚËˇ ==");
+                finish = events.indexOf(" ==\n", start + 24);
+            }
+            else
+                finish = events.indexOf(" ==\n", start + 14);
             if (finish != -1)
                 events = events.substring(start + 14, finish);
             else events = events.substring(start + 14);
@@ -1737,7 +1763,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         db = dbHelper.getWritableDatabase();
 
         Cursor cursor = db.query("Events", new String[]{"year", "event"}, "year >= ? and year <= ?",
-                new String[]{Integer.toString(globalYearStart, globalYearFinish)}, null, null, null);
+                new String[]{String.valueOf(globalYearStart), String.valueOf(globalYearFinish)}, null, null, null);
 
         ArrayList<EventModel> eventsFromDB = new ArrayList<EventModel>();
         //ArrayList<EventModel> eventsToDelFromDB = new ArrayList<EventModel>();
@@ -1747,7 +1773,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             eventsToParseLex.addAll(eventList);
         }
 
-        else {//!!! Œƒ Õ»∆≈ Õ≈ œ–Œ¬≈–≈Õ!!!
+        else {
+            cursor.moveToFirst();
             do {
                 int yearFromDB = cursor.getInt(cursor.getColumnIndex("year"));
                 String textFromDB = cursor.getString(cursor.getColumnIndex("event"));
@@ -1756,7 +1783,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             } while (cursor.moveToNext());
 
             for(EventModel evntMod : eventList){
-                if (!(eventsFromDB.equals(evntMod))){
+                if (!(eventsFromDB.contains(evntMod))){
                     eventsToParseLex.add(evntMod);
                 }
             }
@@ -1766,12 +1793,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
 
         for(EventModel evntMod : eventsFromDB){
-            if (!(eventList.equals(evntMod)) & eventsByYear.keySet().contains(evntMod.year)){
+            if (!(eventList.contains(evntMod)) & eventsByYear.keySet().contains(evntMod.year)){
                 //eventsToDelFromDB.add(evntMod);
                 eventsForDeleteDB.add(new EventModel(evntMod.text, evntMod.year));
                 //db.delete("Event", "year = ? and text = ?", new String[]{String.valueOf(evntMod.year), evntMod.text});
             }
-        }//!!! Œƒ ¬€ÿ≈ Õ≈ œ–Œ¬≈–≈Õ!!!
+        }
         log(Level.INFO, "ParseEvent", "ParseEvent success");
         return eventsToParseLex;
 
@@ -1952,29 +1979,39 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         public View getInfoContents(Marker marker) {
             View v = getLayoutInflater().inflate(R.layout.info_window_layout, null);
             LinearLayout layout = (LinearLayout) v.findViewById(R.id.main_layout);
-            List<EventWithYear> eventWithYearList = new ArrayList<EventWithYear>();
+            eventWithYearList = new ArrayList<EventWithYear>();
             if (clickedClusterItem != null) {
                 eventWithYearList = clickedClusterItem.getEventWithYears();
 
-                for (EventWithYear eventWithYear : eventWithYearList) {
+                for (int i = 0; i < eventWithYearList.size() & i < 3; i++) {
                     TextView tViewEvent = new TextView(context);
                     TextView tViewDate = new TextView(context);
                     tViewEvent.setTextColor(getResources().getColor(R.color.black));
                     tViewDate.setTextColor(getResources().getColor(R.color.grey));
-                    tViewDate.setGravity(View.TEXT_ALIGNMENT_VIEW_END);
+                    tViewDate.setGravity(Gravity.RIGHT);
                     tViewDate.setTextSize(11);
                     tViewEvent.setMaxHeight(50);
                     tViewEvent.setMaxWidth(300);
                     tViewDate.setMaxHeight(50);
                     tViewDate.setMaxWidth(300);
-                    tViewDate.setMaxWidth(300);
-                    tViewEvent.setText(eventWithYear.text);
-                    tViewDate.setText(Integer.toString(eventWithYear.year));
+                    tViewEvent.setText(eventWithYearList.get(i).text);
+                    tViewDate.setText(Integer.toString(eventWithYearList.get(i).year));
 
                     layout.addView(tViewEvent);
                     layout.addView(tViewDate);
                 }
 
+                if(eventWithYearList.size() > 3){
+                    TextView tViewMore = new TextView(context);
+                    tViewMore.setTextColor(getResources().getColor(R.color.black));
+                    tViewMore.setGravity(Gravity.RIGHT);
+                    tViewMore.setMaxHeight(50);
+                    tViewMore.setMaxWidth(300);
+                    tViewMore.setTextSize(20);
+                    tViewMore.setText("...");
+
+                    layout.addView(tViewMore);
+                }
                 return v;
             }
             return null;

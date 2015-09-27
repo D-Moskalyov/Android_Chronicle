@@ -68,7 +68,15 @@ public class EventModel implements Comparable<EventModel>{
 
     }
 
-//    @Override
+    @Override
+    public boolean equals(Object o) {
+        if(this.year == ((EventModel)o).year &
+                this.text.compareTo(((EventModel)o).text) == 0)
+            return true;
+        return false;
+    }
+
+    //    @Override
 //    public int compare(EventModel lhs, EventModel rhs) {//для сравнения данніх из БД и Parse
 //        if(lhs.year == rhs.year & lhs.text == rhs.text)
 //            return 0;

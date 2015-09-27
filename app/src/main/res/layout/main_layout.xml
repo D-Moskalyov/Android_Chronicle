@@ -45,9 +45,10 @@
 
             android:id="@+id/settingsButton"
             android:alpha="0.5"
-            android:drawable="@drawable/ic_launcher"
+
             android:onClick="onClickPreferences"
-            android:layout_alignParentTop="true" android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
             android:layout_alignParentEnd="true"/>
 </RelativeLayout>
 
@@ -56,5 +57,9 @@
           <!--android:id="@+id/map"-->
           <!--android:layout_width="match_parent"-->
           <!--android:layout_height="match_parent"/>-->
+
+
+
+        <!--android:drawable="@drawable/ic_launcher"-->
 
 
