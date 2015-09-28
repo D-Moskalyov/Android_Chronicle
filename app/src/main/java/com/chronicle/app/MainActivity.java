@@ -13,6 +13,8 @@ import android.graphics.pdf.PdfDocument;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Parcelable;
 import android.support.annotation.IntegerRes;
@@ -47,6 +49,7 @@ import org.apache.lucene.morphology.*;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
+import java.sql.Time;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -114,6 +117,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     Context context;
     EventsMarker clickedClusterItem;
+    boolean isCrached;
+
+    ConnectivityManager cm;
+    NetworkInfo activeNetwork;
+    boolean isConnected;
 
     String LOG_TAG = "INF";
     Logger logger = Logger.getLogger("chron");
@@ -169,6 +177,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mainButton = (Button) this.findViewById(R.id.settingsButton);
         innerYearStart = 0;
         innerYearfinish = 0;
+
+        cm = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        activeNetwork = cm.getActiveNetworkInfo();
+
         InitClusterer();
         //Log.d(LOG_TAG, "--- onCreate main ---");
 
@@ -202,6 +214,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (innerYearStart == globalYearStart & innerYearfinish == globalYearFinish)//настройки не поменялись
             return;
 
+        isCrached = false;
         innerYearStart = globalYearStart;
         innerYearfinish = globalYearFinish;
 
@@ -228,23 +241,32 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         List<EventWithLex> eventWithLexes = new ArrayList<EventWithLex>();
         SortedSet<EventModel> events = new TreeSet<EventModel>();
 
-        GetPagesForUpdateDeleteCreate();
+        isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
 
-        if (listForFirstInit.size() != 0 || listForUpdate.size() != 0)
-            allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
-        if (allEvntsByYear.size() != 0)
-            eventsToParseLex = ParseEvent(allEvntsByYear);
-        if (eventsToParseLex.size() != 0)
-            eventWithLexList = ParseLexFromEvents(eventsToParseLex);
-        if (eventWithLexList.size() != 0)
-            eventWithLexes = GetRedirectForLexemes(eventWithLexList);
-        if (eventWithLexes.size() != 0)
-            events = GetCoordForEvent(eventWithLexes);
-        //if (events.size() != 0)
-            WriteDB(events);
+        if(isConnected) {
+            GetPagesForUpdateDeleteCreate();
+
+            if (listForFirstInit.size() != 0 || listForUpdate.size() != 0 & !isCrached)
+                allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
+            if (allEvntsByYear.size() != 0 & !isCrached)
+                eventsToParseLex = ParseEvent(allEvntsByYear);
+            if (eventsToParseLex.size() != 0 & !isCrached)
+                eventWithLexList = ParseLexFromEvents(eventsToParseLex);
+            if (eventWithLexList.size() != 0 & !isCrached)
+                eventWithLexes = GetRedirectForLexemes(eventWithLexList);
+            if (eventWithLexes.size() != 0 & !isCrached)
+                events = GetCoordForEvent(eventWithLexes);
+            if (!isCrached)
+                WriteDB(events);
+        }
 
         MakeMarkers();
         mClusterManager.cluster();
+
+        if(!isConnected)
+            Toast.makeText(this, "Something wrong", Toast.LENGTH_LONG);
+        if(isCrached)
+            Toast.makeText(this, "Data is not updated. Check the connection", Toast.LENGTH_LONG);
 
         //Log.i("onResume", "onResume");
 
@@ -359,7 +381,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
         log(Level.INFO, "onActivityResult", "onActivityResult success");
     }
-
 
     public void onClickPreferences(View view){
 //        Class c = Build.VERSION.SDK_INT <Build.VERSION_CODES.HONEYCOMB ?
@@ -525,6 +546,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     }
 
                 } catch (ParseException e) {
+                    isCrached = true;
                     e.printStackTrace();
                 }
 
@@ -547,6 +569,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
 
             Integer[] masForFirstInit = GetNewPageForInsertIntoDB(listForFirstInit);
+
+
             getPageAsync = new GetPageAsync();
             getPageAsync.execute(masForFirstInit);
 
@@ -558,14 +582,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((masForFirstInit.length + 10) / 2, TimeUnit.SECONDS));
 
             } catch (TimeoutException e) {
+                isCrached = true;
                 e.printStackTrace();
             } catch (InterruptedException e) {
+                isCrached = true;
                 e.printStackTrace();
             } catch (ExecutionException e) {
+                isCrached = true;
                 e.printStackTrace();
             }
 
             Integer[] masForUpdate = GetMasForGetPageRevID(listForUpdate);
+
+
             getPageRevIDAsync = new GetPageRevIDAsync();
             getPageRevIDAsync.execute(masForUpdate);
 
@@ -573,12 +602,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             listForUpdate = new ArrayList<Integer>();
             try {
-                listForUpdate.addAll(getPageRevIDAsync.get(5, TimeUnit.SECONDS));
+                listForUpdate.addAll(getPageRevIDAsync.get((masForUpdate.length + 10) / 2, TimeUnit.SECONDS));
             } catch (TimeoutException e) {
+                isCrached = true;
                 e.printStackTrace();
             } catch (InterruptedException e) {
+                isCrached = true;
                 e.printStackTrace();
             } catch (ExecutionException e) {
+                isCrached = true;
                 e.printStackTrace();
             }
 
@@ -594,10 +626,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             try {
                 allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((listForUpdateMas.length + 10) / 2, TimeUnit.SECONDS));
             } catch (TimeoutException e) {
+                isCrached = true;
                 e.printStackTrace();
             } catch (InterruptedException e) {
+                isCrached = true;
                 e.printStackTrace();
             } catch (ExecutionException e) {
+                isCrached = true;
                 e.printStackTrace();
             }
 
@@ -617,10 +652,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             ArrayMap<Integer, Long> pagesWithID = null;
             try {
-                pagesWithID = getNewPageRevIDAsync.get();
+                pagesWithID = getNewPageRevIDAsync.get((masForFirstInit.length + 10) / 2, TimeUnit.SECONDS);
+            } catch (TimeoutException e) {
+                isCrached = true;
+                e.printStackTrace();
             } catch (InterruptedException e) {
+                isCrached = true;
                 e.printStackTrace();
             } catch (ExecutionException e) {
+                isCrached = true;
                 e.printStackTrace();
             }
 
@@ -655,6 +695,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         try {
             luceneMorph = new RussianLuceneMorphology();
         } catch (IOException e) {
+            isCrached = true;
             e.printStackTrace();
         }
 
@@ -722,6 +763,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         }
                     }
                 }catch (WrongCharaterException e){
+                    isCrached = true;
                     e.printStackTrace();
                 }
 
@@ -774,10 +816,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
         } catch (InterruptedException e) {
+            isCrached = true;
             e.printStackTrace();
         } catch (ExecutionException e) {
+            isCrached = true;
             e.printStackTrace();
         } catch (TimeoutException e) {
+            isCrached = true;
             e.printStackTrace();
         } finally {
             log(Level.INFO, "GetRedirectForLexemes", "GetRedirectForLexemes success");
@@ -836,10 +881,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
 
         } catch (InterruptedException e) {
+            isCrached = true;
             e.printStackTrace();
         } catch (ExecutionException e) {
+            isCrached = true;
             e.printStackTrace();
         } catch (TimeoutException e) {
+            isCrached = true;
             e.printStackTrace();
         } finally {
             log(Level.INFO, "GetCoordForEvent", "GetCoordForEvent success");
@@ -860,10 +908,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         @Override
         public void onStatusChanged(String provider, int status, Bundle extras) {
             if(provider.equals(locationManager.GPS_PROVIDER)){
-                //??????? ?? ?????????
+
             }
             else if(provider.equals(locationManager.NETWORK_PROVIDER)){
-                //??????? ?? ?????????
+
             }
             log(Level.INFO, "onStatusChanged", "onStatusChanged success");
         }
@@ -943,6 +991,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     String text = wikipedia.getPageText(year);
                     pages.put(params[i], text);
                 } catch (IOException e) {
+                    isCrached = true;
                     e.printStackTrace();
                     //return page;
                 }
@@ -1013,7 +1062,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     pages.add(year);
                 }
 
-                pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
+                try {
+                    pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
+                } catch (IOException e) {
+                    isCrached = true;
+                    e.printStackTrace();
+                }
                 pages.clear();
             }
             log(Level.INFO, "doInBackground", "GetNewPageRevIDAsync -> doInBackground success");
@@ -1044,7 +1098,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                     pages.add(year);
                 }
-                pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
+                try {
+                    pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
+                } catch (IOException e) {
+                    isCrached = true;
+                    e.printStackTrace();
+                }
                 pages.clear();
             }
 
@@ -1075,7 +1134,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         long revID = cursor.getInt(cursor.getColumnIndex("revisionID"));
 
                         if(pagesWithID.get(new Integer(year)) == null){
-                            pagesForDeleteDB.add(new PageModel(year, revID, dateFormat.format(date)));
+                            //pagesForDeleteDB.add(new PageModel(year, revID, dateFormat.format(date)));
                         }
                         else{
                             long revIDFromWiki = pagesWithID.get(new Integer(year));
@@ -1188,7 +1247,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     tempList.add(lexesList.get(i * 50 + j));
                 }
 
-                titleWithCoordTemplate.addAll(wikipedia.getTitlePageWithCoordTemplate(tempList));
+                try {
+                    titleWithCoordTemplate.addAll(wikipedia.getTitlePageWithCoordTemplate(tempList));
+                } catch (IOException e) {
+                    isCrached = true;
+                    e.printStackTrace();
+                }
                 tempList.clear();
             }
 
@@ -1268,7 +1332,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     tempList.add(paramsList.get(i * 50 + j));
                 }
 
-                ArrayMap<String, LatLng> latLng = wikipedia.getCoordinateForPlaces(tempList);
+                ArrayMap<String, LatLng> latLng = null;
+                try {
+                    latLng = wikipedia.getCoordinateForPlaces(tempList);
+                } catch (IOException e) {
+                    isCrached = true;
+                    e.printStackTrace();
+                }
 
                 for(int j = 0; j < latLng.size(); j++){
                     placesWithCoord.put(latLng.keyAt(j), new Coordinate(latLng.valueAt(j)));
@@ -1301,7 +1371,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     paramsSet.add(paramsList.get(i * 50 + j));
                 }
 
-                titleWithRedirect.addAll(wikipedia.getTitlePageWithRedirect(paramsSet));
+                try {
+                    titleWithRedirect.addAll(wikipedia.getTitlePageWithRedirect(paramsSet));
+                } catch (IOException e) {
+                    isCrached = true;
+                    e.printStackTrace();
+                }
                 paramsSet.clear();
             }
             //HashSet<String> paramsSet = new HashSet<String>(paramsList);
@@ -1318,7 +1393,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private class GetAddressPageForRedirectAsync extends AsyncTask<String, String, String>{
         @Override
         protected String doInBackground(String... params) {
-            String str = wikipedia.getRedirectForPage(params[0]);
+            String str = null;
+            try {
+                str = wikipedia.getRedirectForPage(params[0]);
+            } catch (IOException e) {
+                isCrached = true;
+                e.printStackTrace();
+            }
             log(Level.INFO, "doInBackground", "GetAddressPageForRedirectAsync -> doInBackground success");
             return str;
         }
@@ -1352,12 +1433,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
         }
 
-        for(PageModel pageModel : pagesForDeleteDB){
-//            db.delete("Pages", "year = ? and revisionID = ?",
-//                    new String[]{String.valueOf(pageModel.year), String.valueOf(pageModel.revID)});
-            db.delete("Pages", "year = " + String.valueOf(pageModel.year) +
-                    " and revisionID = " + String.valueOf(pageModel.revID), null);
-        }
+//        for(PageModel pageModel : pagesForDeleteDB){
+////            db.delete("Pages", "year = ? and revisionID = ?",
+////                    new String[]{String.valueOf(pageModel.year), String.valueOf(pageModel.revID)});
+//            db.delete("Pages", "year = " + String.valueOf(pageModel.year) +
+//                    " and revisionID = " + String.valueOf(pageModel.revID), null);
+//        }
 
         for(PageModel pageModel : pagesForUdateDB) {
 

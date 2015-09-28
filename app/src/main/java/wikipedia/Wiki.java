@@ -85,16 +85,16 @@ public class Wiki implements Serializable{
         basegen.append(scriptPath);
         StringBuilder apigen = new StringBuilder(basegen);
         apigen.append("/api.php?format=json&");
-//        if (maxlag >= 0)
-//        {
-//            apigen.append("maxlag=");
-//            apigen.append(maxlag);
-//            apigen.append("&");
-//            basegen.append("/index.php?maxlag=");
-//            basegen.append(maxlag);
-//            basegen.append("&title=");
-//        }
-//        else
+        if (maxlag >= 0)
+        {
+            apigen.append("maxlag=");
+            apigen.append(maxlag);
+            apigen.append("&");
+            basegen.append("/index.php?maxlag=");
+            basegen.append(maxlag);
+            basegen.append("&title=");
+        }
+        else
             basegen.append("/index.php?title=");
         base = basegen.toString();
         // the native API supports assertions as of MW 1.23
@@ -126,21 +126,21 @@ public class Wiki implements Serializable{
         return temp;
     }
 
-    public Coordinate getCoordForPlace(String place){
+    public Coordinate getCoordForPlace(String place) throws IOException{
 
         Coordinate coordinate = new Coordinate();
 
         String url = null;
-        try {
+        //try {
             url = base + URLEncoder.encode(normalize(place), "UTF-8") + "&action=raw";
             String temp = fetch(url, "getCoordForPlace");
 
             if(temp != null & temp != ""){
 
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
 
         return coordinate;
@@ -288,40 +288,40 @@ public class Wiki implements Serializable{
 //            }
 //    }
 
-    public long getPageRevId(String title){
+    public long getPageRevId(String title) throws IOException{
         StringBuilder url = new StringBuilder(query);
         url.append("prop=revisions&rvprop=ids&titles=");
         url.append(title);
         String IDString = "0";
 
-        try {
+        //try {
             String line = fetch(url.toString(), "getPageRevId");
 
             int x = line.indexOf("\"revid\":") + 8;
             int y = line.indexOf(",", x);
 
             IDString = line.substring(x, y);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         return Long.parseLong(IDString);
     }
 
-    public String getRedirectForPage(String title) {
+    public String getRedirectForPage(String title) throws IOException{
 
         String url = null;
-        try {
+        //try {
             url = base + URLEncoder.encode(normalize(title), "UTF-8") + "&action=raw";
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         String temp = null;
-        try {
+        //try {
             temp = fetch(url, "getRedirectForPage");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         String addressToRedirect = null;
 
@@ -334,7 +334,7 @@ public class Wiki implements Serializable{
             addressToRedirect = temp.substring(x, y);
         }
         else{
-            x = temp.indexOf("#��������������� [[");
+            x = temp.indexOf("#перенаправление [[");
             if(x >= 0){
                 x += 19;
                 y = temp.indexOf("]]", x);
@@ -353,21 +353,21 @@ public class Wiki implements Serializable{
         return addressToRedirect;
     }
 
-    public ArrayList<String> getTitlePageWithCoordTemplate(ArrayList<String> titles){
+    public ArrayList<String> getTitlePageWithCoordTemplate(ArrayList<String> titles) throws IOException{
         ArrayList<String> titleWithCoord = new ArrayList<String>();
 
         StringBuilder url = new StringBuilder(query);
         url.append("prop=templates&tltemplates=Template:Coord&titles=");
 
         for(String title : titles){
-            try {
+            //try {
                 url.append(URLEncoder.encode(normalize(title) + "|"));
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            //} catch (IOException e) {
+            //    e.printStackTrace();
+            //}
         }
 
-        try {
+        //try {
             String line = fetch(url.toString(), "getTitlePageWithCoordTemplate");
 
             int x = 0;
@@ -391,14 +391,14 @@ public class Wiki implements Serializable{
 
                 x = line.indexOf("\"title\":\"", x) + 9;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         return titleWithCoord;
     }
 
-    public ArrayList<String> getTitlePageWithRedirect(HashSet<String> titles){
+    public ArrayList<String> getTitlePageWithRedirect(HashSet<String> titles) throws IOException{
 
         ArrayList<String> titleWithRedirect = new ArrayList<String>();
 
@@ -409,7 +409,7 @@ public class Wiki implements Serializable{
             url.append(title + "|");
         }
 
-        try {
+        //try {
             String line = fetch(url.toString(), "getTitlePageWithRedirect");
 
             int x = 0;
@@ -436,14 +436,14 @@ public class Wiki implements Serializable{
 
             }
 
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         return titleWithRedirect;
     }
 
-    public ArrayMap<String, LatLng> getCoordinateForPlaces(ArrayList<String> places){
+    public ArrayMap<String, LatLng> getCoordinateForPlaces(ArrayList<String> places) throws IOException{
 
         ArrayMap<String, LatLng> titleWithLatLng = new ArrayMap<String, LatLng>();
 
@@ -454,7 +454,7 @@ public class Wiki implements Serializable{
         for(String title : places){
             urlAlone = url.toString() + title;
 
-            try {
+            //try {
                 String line = fetch(urlAlone, "getCoordinateForPlaces");
 
                 int x = 0;
@@ -492,9 +492,9 @@ public class Wiki implements Serializable{
                     }
                 }
 
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
         }
 
 //        try {
@@ -548,7 +548,7 @@ public class Wiki implements Serializable{
         return titleWithLatLng;
     }
 
-    public ArrayMap<Integer, Long> getPagesRevId(ArrayList<String> pages){
+    public ArrayMap<Integer, Long> getPagesRevId(ArrayList<String> pages) throws IOException{
 
         ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
 
@@ -562,7 +562,7 @@ public class Wiki implements Serializable{
 
         String IDString = "0";
 
-        try {
+        //try {
             String line = fetch(url.toString(), "getPageRevId");
 
             int x = 0;
@@ -624,30 +624,30 @@ public class Wiki implements Serializable{
 //            int y = line.indexOf(",", x);
 
 //            IDString = line.substring(x, y);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         return pagesWithID;
     }
 
-    public boolean isContainCoordTemplate(String title){
+    public boolean isContainCoordTemplate(String title) throws IOException{
         StringBuilder url = new StringBuilder(query);
         url.append("prop=templates&tltemplates=Template:Coord&titles=");
         url.append(title);
 
-        try {
+        //try {
             String line = fetch(url.toString(), "isContainCoordTemplate");
 
             if(line.contains("Coord")){
                 return true;
             }
             return false;
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
-        return false;
+        //return false;
     }
 
     protected URLConnection makeConnection(String url) throws IOException
