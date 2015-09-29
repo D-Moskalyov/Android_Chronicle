@@ -65,21 +65,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     MapFragment mapFragment = null;
     GoogleMap map = null;
-    //Marker marker = null;
 
-    //final String TAG = "myLogs";
     SharedPreferences settings;
     private static final int SHOW_PREFERENCES = 1;
     Button mainButton;
 
-    int startDate;
-    int finishDate;
-    //String eventItem;
     List<String> wordBaseForms;
     char noun = 'С';
     private int firstCenturyAC;
-    //int centuryStart;
-    //int centuryFinish;
     int globalYearStart;
     int globalYearFinish;
     int innerYearStart;
@@ -107,21 +100,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     ArrayList<Integer> listForNotUpdate;
 
     InitAsync initAsync;
-    GetPageAsync getPageAsync;
-    GetNewPageRevIDAsync getNewPageRevIDAsync;
-    GetPageRevIDAsync getPageRevIDAsync;
-    GetPageTemplatesAsync getPageTemplatesAsync;
-    GetCoordsAsynk getCoordsAsynk;
-    GetPageRedirectAsync getPageRedirectAsync;
-    GetAddressPageForRedirectAsync getAddressPageForRedirectAsync;
 
     Context context;
     EventsMarker clickedClusterItem;
-    boolean isCrached;
-
     ConnectivityManager cm;
     NetworkInfo activeNetwork;
+
     boolean isConnected;
+    boolean isCrached;
 
     String LOG_TAG = "INF";
     Logger logger = Logger.getLogger("chron");
@@ -129,25 +115,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         context = getApplicationContext();
-        Object object = getLastCustomNonConfigurationInstance();
-//        if(object != null) {
-//            if (object.getClass() == InitAsync.class)
-//                initAsync = (InitAsync) object;
-//            else if (object.getClass() == GetPageAsync.class)
-//                getPageAsync = (GetPageAsync) object;
-//            else if (object.getClass() == GetNewPageRevIDAsync.class)
-//                getNewPageRevIDAsync = (GetNewPageRevIDAsync) object;
-//            else if (object.getClass() == GetPageRevIDAsync.class)
-//                getPageRevIDAsync = (GetPageRevIDAsync) object;
-//            else if (object.getClass() == GetPageTemplatesAsync.class)
-//                getPageTemplatesAsync = (GetPageTemplatesAsync) object;
-//            else if (object.getClass() == GetCoordsAsynk.class)
-//                getCoordsAsynk = (GetCoordsAsynk) object;
-//            else if (object.getClass() == GetPageRedirectAsync.class)
-//                getPageRedirectAsync = (GetPageRedirectAsync) object;
-//            else if (object.getClass() == GetAddressPageForRedirectAsync.class)
-//                getAddressPageForRedirectAsync = (GetAddressPageForRedirectAsync) object;
-//        }
+
         setContentView(R.layout.main_layout);
         firstCenturyAC = (int) getResources().getInteger(R.integer.firstCenturyAC);
         //this.requestWindowFeature(Window.FEATURE_NO_TITLE);
@@ -161,19 +129,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         dbHelper = new DBHelper(this);
-//        db = dbHelper.getWritableDatabase();
-//        db.delete("Pages", null, null);
-//        db.delete("Events", null, null);
-//        dbHelper.close();
 
-        //onMapReady(map);
         wikipedia = new Wiki();
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
-//        wordBaseForms = luceneMorph.getMorphInfo("лотарингии");
-//        wordBaseForms = luceneMorph.getMorphInfo("гренландия");
-//        wordBaseForms = luceneMorph.getMorphInfo("китай");
-//        wordBaseForms = luceneMorph.getMorphInfo("андернахе");
-//        wordBaseForms = luceneMorph.getMorphInfo("константинополь");
+
         mainButton = (Button) this.findViewById(R.id.settingsButton);
         innerYearStart = 0;
         innerYearfinish = 0;
@@ -182,26 +141,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         activeNetwork = cm.getActiveNetworkInfo();
 
         InitClusterer();
-        //Log.d(LOG_TAG, "--- onCreate main ---");
-
-//        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//        dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
-//
-//        dbHelper = new DBHelper(this);
-//        db = dbHelper.getWritableDatabase();
-//
-//        db.delete("Page", null, null);
-//        ContentValues cv = new ContentValues();
-//
-//        cv.put("year", 1914);
-//        cv.put("revisionID", 1);
-//
-//        Date date = new Date();
-//        cv.put("lastUpdate", dateFormat.format(date));
-//
-//        long id = db.insert("Page", null, cv);
-//        dbHelper.close();
-
 
         log(Level.INFO, "onCreate", "onCreate success");
     }
@@ -235,50 +174,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         listForUpdate = new ArrayList<Integer>();
         listForNotUpdate = new ArrayList<Integer>();
 
-        ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
-        ArrayList<EventModel> eventsToParseLex = new ArrayList<EventModel>();
-        List<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
-        List<EventWithLex> eventWithLexes = new ArrayList<EventWithLex>();
-        SortedSet<EventModel> events = new TreeSet<EventModel>();
-
         isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
 
         if(isConnected) {
-            GetPagesForUpdateDeleteCreate();
-
-            if (listForFirstInit.size() != 0 || listForUpdate.size() != 0 & !isCrached)
-                allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
-            if (allEvntsByYear.size() != 0 & !isCrached)
-                eventsToParseLex = ParseEvent(allEvntsByYear);
-            if (eventsToParseLex.size() != 0 & !isCrached)
-                eventWithLexList = ParseLexFromEvents(eventsToParseLex);
-            if (eventWithLexList.size() != 0 & !isCrached)
-                eventWithLexes = GetRedirectForLexemes(eventWithLexList);
-            if (eventWithLexes.size() != 0 & !isCrached)
-                events = GetCoordForEvent(eventWithLexes);
-            if (!isCrached)
-                WriteDB(events);
+            initAsync = new InitAsync();
+            initAsync.execute();
         }
-
-        MakeMarkers();
-        mClusterManager.cluster();
-
-        if(!isConnected)
+        else {
             Toast.makeText(this, "Something wrong", Toast.LENGTH_LONG);
-        if(isCrached)
-            Toast.makeText(this, "Data is not updated. Check the connection", Toast.LENGTH_LONG);
-
-        //Log.i("onResume", "onResume");
-
-        //initAsync = new InitAsync();
-        //initAsync.execute();
-//        try {
-//            Integer f = initAsync.get();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        } catch (ExecutionException e) {
-//            e.printStackTrace();
-//        }
+            MakeMarkers();
+            mClusterManager.cluster();
+        }
 
         log(Level.INFO, "onResume", "onResume success");
     }
@@ -308,21 +214,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         locationManager.removeUpdates(locationListener);
         log(Level.INFO, "onPause", "onPause success");
     }
-//    private void addItems() {
-//
-//        // Set some lat/lng coordinates to start with.
-//        double lat = 51.5145160;
-//        double lng = -0.1270060;
-//
-//        // Add ten cluster items in close proximity, for purposes of this example.
-//        for (int i = 0; i < 10; i++) {
-//            double offset = i / 60d;
-//            lat = lat + offset;
-//            lng = lng + offset;
-//            Coordinate offsetItem = new Coordinate(lat, lng);
-//            mClusterManager.addItem(offsetItem);
-//        }
-//    }
 
     @Override
     protected void onStart() {
@@ -399,37 +290,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public Object onRetainCustomNonConfigurationInstance() {
 
-//        if(initAsync != null & initAsync.getStatus() == AsyncTask.Status.RUNNING)
-//            return initAsync;
-//        if(getPageAsync != null & getPageAsync.getStatus() == AsyncTask.Status.RUNNING)
-//            return getPageAsync;
-//        if(getNewPageRevIDAsync != null & getNewPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING)
-//            return getNewPageRevIDAsync;
-//        if(getPageRevIDAsync != null & getPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING)
-//            return getPageRevIDAsync;
-//        if(getPageTemplatesAsync != null & getPageTemplatesAsync.getStatus() == AsyncTask.Status.RUNNING)
-//            return getPageTemplatesAsync;
-//        if(getCoordsAsynk != null & getCoordsAsynk.getStatus() == AsyncTask.Status.RUNNING)
-//            return getCoordsAsynk;
-//        if(getPageRedirectAsync != null & getPageRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
-//            return getPageRedirectAsync;
-//        if(getAddressPageForRedirectAsync != null & getAddressPageForRedirectAsync.getStatus() == AsyncTask.Status.RUNNING)
-//            return getAddressPageForRedirectAsync;
-
         log(Level.INFO, "onRetainCustomNonConfigurationInstance", "onRetainCustomNonConfigurationInstance success");
         return null;
-//        List<Object> list = new ArrayList<Object>();
-//
-//        list.add(initAsync);
-//        list.add(getPageAsync);
-//        list.add(getNewPageRevIDAsync);
-//        list.add(getPageRevIDAsync);
-//        list.add(getPageTemplatesAsync);
-//        list.add(getCoordsAsynk);
-//        list.add(getPageRedirectAsync);
-//        list.add(getAddressPageForRedirectAsync);
-//
-//        return list;
     }
 
     private void InitClusterer(){
@@ -454,14 +316,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 Intent intent = new Intent(context, ListEventsActivity.class);
                 intent.putExtra("eventWithYearList", eventWithYearList);
                 startActivity(intent);
-
-                //intent.putParcelableArrayListExtra("eventWithYearList", eventWithYearList);
-                //intent.putExtra("eventWithYearArray", eventWithYearList.toArray());
-                //Bundle mBundle = new Bundle();
-                //mBundle.putParcelable("eventWithYear", eventWithYearList.get(0));
-                //intent.putExtras(mBundle);
-                //intent.putExtra("eventWithYear", eventWithYearList.get(0));
-                //listEventsActivity.startActivity();
             }
         });
 
@@ -478,7 +332,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         log(Level.INFO, "InitClusterer", "InitClusterer success");
-        //addItems();
     }
 
     private void SetStartFinishYear(SharedPreferences settings){
@@ -504,6 +357,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
         log(Level.INFO, "SetStartFinishYear", "SetStartFinishYear success");
     }
+
+
 
     private void GetPagesForUpdateDeleteCreate(){
         SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -570,46 +425,19 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
             Integer[] masForFirstInit = GetNewPageForInsertIntoDB(listForFirstInit);
 
-
-            getPageAsync = new GetPageAsync();
-            getPageAsync.execute(masForFirstInit);
-
-//        while (getPageAsync.getStatus() != AsyncTask.Status.FINISHED){
-//
-//        }
-
             try {
-                allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((masForFirstInit.length + 10) / 2, TimeUnit.SECONDS));
-
+                allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) GetPage(masForFirstInit));
             } catch (TimeoutException e) {
-                isCrached = true;
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                isCrached = true;
-                e.printStackTrace();
-            } catch (ExecutionException e) {
                 isCrached = true;
                 e.printStackTrace();
             }
 
             Integer[] masForUpdate = GetMasForGetPageRevID(listForUpdate);
 
-
-            getPageRevIDAsync = new GetPageRevIDAsync();
-            getPageRevIDAsync.execute(masForUpdate);
-
-//        while (getPageRevIDAsync.getStatus() == AsyncTask.Status.RUNNING){}
-
             listForUpdate = new ArrayList<Integer>();
             try {
-                listForUpdate.addAll(getPageRevIDAsync.get((masForUpdate.length + 10) / 2, TimeUnit.SECONDS));
+                listForUpdate.addAll(GetPageRevID(masForUpdate));
             } catch (TimeoutException e) {
-                isCrached = true;
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                isCrached = true;
-                e.printStackTrace();
-            } catch (ExecutionException e) {
                 isCrached = true;
                 e.printStackTrace();
             }
@@ -618,20 +446,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 return allEvntsByYear;
 
             Integer[] listForUpdateMas = listForUpdate.toArray(new Integer[listForUpdate.size()]);
-            getPageAsync = new GetPageAsync();
-            getPageAsync.execute(listForUpdateMas);
-
-//        while (getPageUpdateAsync.getStatus() == AsyncTask.Status.RUNNING){}
 
             try {
-                allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) getPageAsync.get((listForUpdateMas.length + 10) / 2, TimeUnit.SECONDS));
+                allEvntsByYear.putAll((Map<? extends Integer, ? extends String>) GetPage(listForUpdateMas));
             } catch (TimeoutException e) {
-                isCrached = true;
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                isCrached = true;
-                e.printStackTrace();
-            } catch (ExecutionException e) {
                 isCrached = true;
                 e.printStackTrace();
             }
@@ -647,19 +465,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(listForFirstInit != null & listForFirstInit.size() != 0) {
             Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
 
-            getNewPageRevIDAsync = new GetNewPageRevIDAsync();
-            getNewPageRevIDAsync.execute(masForFirstInit);
-
             ArrayMap<Integer, Long> pagesWithID = null;
             try {
-                pagesWithID = getNewPageRevIDAsync.get((masForFirstInit.length + 10) / 2, TimeUnit.SECONDS);
+                pagesWithID = GetNewPageRevID(masForFirstInit);
             } catch (TimeoutException e) {
-                isCrached = true;
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                isCrached = true;
-                e.printStackTrace();
-            } catch (ExecutionException e) {
                 isCrached = true;
                 e.printStackTrace();
             }
@@ -752,14 +561,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                             lex = wordBaseForms.get(0).substring(0, pos - 3);
                             if(lex.compareTo("иза") != 0)
                                 lexemes.add(lex);
-//                        getPageTemplatesAsync = new GetPageTemplatesAsync();
-//                        String utf8lex = "";
-//                        try {
-//                            utf8lex = new String(lex.getBytes("UTF-8"), "UTF-8");
-//                        } catch (UnsupportedEncodingException e) {
-//                            e.printStackTrace();
-//                        }
-//                        getPageTemplatesAsync.execute(utf8lex);
                         }
                     }
                 }catch (WrongCharaterException e){
@@ -787,17 +588,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         String[] rawLexMas = rawLex.toArray(new String[rawLex.size()]);
 
-        getPageRedirectAsync = new GetPageRedirectAsync();
-        getPageRedirectAsync.execute(rawLexMas);
-
         try {
-            ArrayList<String> lexForRedirect = getPageRedirectAsync.get((rawLexMas.length + 10) / 2, TimeUnit.SECONDS);
+            ArrayList<String> lexForRedirect = GetPageRedirect(rawLexMas);
 
             for(String lexForRedir : lexForRedirect){
-                getAddressPageForRedirectAsync =
-                        new GetAddressPageForRedirectAsync();
-                getAddressPageForRedirectAsync.execute(lexForRedir);
-                String lexToRedir = getAddressPageForRedirectAsync.get(5000, TimeUnit.MILLISECONDS);
+
+                String lexToRedir = GetAddressPageForRedirect(new String[]{lexForRedir});//!!!
 
                 lexToRedir = lexToRedir.toLowerCase();
                 lexForRedir = lexForRedir.toLowerCase();
@@ -815,12 +611,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
             }
 
-        } catch (InterruptedException e) {
-            isCrached = true;
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            isCrached = true;
-            e.printStackTrace();
         } catch (TimeoutException e) {
             isCrached = true;
             e.printStackTrace();
@@ -844,18 +634,12 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         String[] rawLexMas = set.toArray(new String[set.size()]);
 
-        getPageTemplatesAsync = new GetPageTemplatesAsync();
-        getPageTemplatesAsync.execute(rawLexMas);
-
         try {
-            ArrayList<String> lexesWithCoord = getPageTemplatesAsync.get((rawLexMas.length + 10) / 2, TimeUnit.SECONDS);
+            ArrayList<String> lexesWithCoord = GetPageTemplates(rawLexMas);
 
             String[] lexesWithCoordMas = lexesWithCoord.toArray(new String[lexesWithCoord.size()]);
 
-            getCoordsAsynk = new GetCoordsAsynk();
-            getCoordsAsynk.execute(lexesWithCoordMas);
-
-            ArrayMap<String, Coordinate> placesWithCoord = getCoordsAsynk.get((lexesWithCoordMas.length + 10) / 2, TimeUnit.SECONDS);
+            ArrayMap<String, Coordinate> placesWithCoord = GetCoords(lexesWithCoordMas);
 
 
 
@@ -880,12 +664,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 //mClusterManager.setOnClusterItemClickListener(eventWithLex.evntModel.coord);
             }
 
-        } catch (InterruptedException e) {
-            isCrached = true;
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            isCrached = true;
-            e.printStackTrace();
         } catch (TimeoutException e) {
             isCrached = true;
             e.printStackTrace();
@@ -942,14 +720,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         log(Level.INFO, "ShowLocation", "ShowLocation success");
     }
 
-    private String FormatLocation(Location location){
-        log(Level.INFO, "FormatLocation", "FormatLocation success");
-        if(location == null)
-            return "";
-        return String.format(Double.toString(location.getLatitude()), Double.toString(location.getLongitude())
-                , new Date(location.getTime()).toString());
-    }
-
     private void CheckEnable(){
         log(Level.INFO, "CheckEnable", "CheckEnable success");
     }
@@ -960,449 +730,316 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         protected Integer doInBackground(Void... params) {
 
+            ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
+            ArrayList<EventModel> eventsToParseLex = new ArrayList<EventModel>();
+            List<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
+            List<EventWithLex> eventWithLexes = new ArrayList<EventWithLex>();
+            SortedSet<EventModel> events = new TreeSet<EventModel>();
+
+
+            GetPagesForUpdateDeleteCreate();
+
+            if (listForFirstInit.size() != 0 || listForUpdate.size() != 0 & !isCrached)
+                allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
+            if (allEvntsByYear.size() != 0 & !isCrached)
+                eventsToParseLex = ParseEvent(allEvntsByYear);
+            if (eventsToParseLex.size() != 0 & !isCrached)
+                eventWithLexList = ParseLexFromEvents(eventsToParseLex);
+            if (eventWithLexList.size() != 0 & !isCrached)
+                eventWithLexes = GetRedirectForLexemes(eventWithLexList);
+            if (eventWithLexes.size() != 0 & !isCrached)
+                events = GetCoordForEvent(eventWithLexes);
+            if (!isCrached)
+                WriteDB(events);
 
             log(Level.INFO, "doInBackground", "InitAsync -> doInBackground success");
             return 1;
         }
 
         @Override
-        protected void onPostExecute(Integer integer) {
-            super.onPostExecute(integer);
+        protected void onPostExecute(Integer params) {
+            super.onPostExecute(params);
+
+            if(isCrached)
+                Toast.makeText(context, "Data is not updated. Check the connection", Toast.LENGTH_LONG);
+
+            MakeMarkers();
+            mClusterManager.cluster();
 
             log(Level.INFO, "doInBackground", "InitAsync -> onPostExecute success");
         }
 
     }
 
-    private class GetPageAsync extends AsyncTask<Integer, String, ArrayMap<Integer, String>> {
 
-        protected ArrayMap<Integer, String> doInBackground(Integer... params) {
 
-            int count = params.length;
-            ArrayMap<Integer, String> pages = new ArrayMap<Integer, String>();
-            //long totalSize = 0;
-            for (int i = 0; i < count; i++) {
-                String year = String.valueOf(params[i]) + "_год";
-                if (params[i] < 0) {
+    private ArrayMap<Integer, String> GetPage (Integer [] params) throws TimeoutException{
+
+        int count = params.length;
+        ArrayMap<Integer, String> pages = new ArrayMap<Integer, String>();
+        //long totalSize = 0;
+        for (int i = 0; i < count; i++) {
+            String year = String.valueOf(params[i]) + "_год";
+            if (params[i] < 0) {
+                year += "_до_н._э.";
+                year = year.substring(1);
+            }
+            try {
+                String text = wikipedia.getPageText(year);
+                pages.put(params[i], text);
+            } catch (IOException e) {
+                isCrached = true;
+                e.printStackTrace();
+                //return page;
+            }
+        }
+
+        if (pages == null)
+            return new ArrayMap<Integer, String>();
+
+        ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
+
+
+        for (int i = 0; i < pages.size(); i++) {
+            if (!pages.valueAt(i).contains("#перенаправление") &
+                    !pages.valueAt(i).contains("#REDIRECT") &
+                    !pages.valueAt(i).contains("#redirect"))
+                allEvntsByYear.put(pages.keyAt(i), pages.valueAt(i));
+        }
+        log(Level.INFO, "doInBackground", "GetPageAsync -> doInBackground success");
+        return allEvntsByYear;
+
+    }
+
+    private ArrayMap<Integer, Long> GetNewPageRevID(Integer [] params) throws TimeoutException {
+
+        int count = listForFirstInit.size();
+        int rowCount = count / 50;
+        if (listForFirstInit.size() % 50 != 0)
+            rowCount++;
+
+        ArrayList<String> pages = new ArrayList<String>();
+        ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
+
+        for (int i = 0; i < rowCount; i++) {
+            for (int j = 0; j < 50 & count > i * 50 + j; j++) {
+                String year = String.valueOf(listForFirstInit.get(i * 50 + j)) + "_год";
+                if (listForFirstInit.get(i * 50 + j) < 0) {
                     year += "_до_н._э.";
                     year = year.substring(1);
                 }
-                try {
-                    String text = wikipedia.getPageText(year);
-                    pages.put(params[i], text);
-                } catch (IOException e) {
-                    isCrached = true;
-                    e.printStackTrace();
-                    //return page;
-                }
-            }
-            //String[] pagesMas = pages.toArray(new String[pages.size()]);
-            //return pages;
 
-
-
-            if(pages == null)
-                return new ArrayMap<Integer, String>();
-
-            ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
-
-
-            for(int i = 0; i < pages.size(); i++) {
-                if (!pages.valueAt(i).contains("#перенаправление") &
-                        !pages.valueAt(i).contains("#REDIRECT") &
-                        !pages.valueAt(i).contains("#redirect"))
-                    allEvntsByYear.put(pages.keyAt(i), pages.valueAt(i));
-            }
-            log(Level.INFO, "doInBackground", "GetPageAsync -> doInBackground success");
-            return allEvntsByYear;
-        }
-
-//        protected void onProgressUpdate(Integer... progress) {
-//            setProgressPercent(progress[0]);
-//        }
-//
-//        protected void onPostExecute(ArrayMap<Integer, String> result) {
-//            if(result == null)
-//                return;
-//
-//            ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
-//
-//
-//            for(int i = 0; i < result.size(); i++) {
-//                if (!result.valueAt(i).contains("#перенаправление") &
-//                        !result.valueAt(i).contains("#REDIRECT") &
-//                        !result.valueAt(i).contains("#redirect"))
-//                    allEvntsByYear.put(result.keyAt(i), result.valueAt(i));
-//            }
-//
-//            ParseEvent(allEvntsByYear);
-//        }
-
-    }
-
-    private class GetNewPageRevIDAsync extends AsyncTask<Integer, String, ArrayMap<Integer, Long>> {
-
-        protected ArrayMap<Integer, Long> doInBackground(Integer... params) {
-            int count = listForFirstInit.size();
-            int rowCount = count / 50;
-            if(listForFirstInit.size() % 50 != 0)
-                rowCount++;
-
-            ArrayList<String> pages = new ArrayList<String>();
-            ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
-
-            for(int i = 0; i < rowCount; i++){
-                for(int j = 0; j < 50 & count > i * 50 + j; j++){
-                    String year = String.valueOf(listForFirstInit.get(i * 50 + j)) + "_год";
-                    if (listForFirstInit.get(i * 50 + j) < 0) {
-                        year += "_до_н._э.";
-                        year = year.substring(1);
-                    }
-
-                    pages.add(year);
-                }
-
-                try {
-                    pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
-                } catch (IOException e) {
-                    isCrached = true;
-                    e.printStackTrace();
-                }
-                pages.clear();
-            }
-            log(Level.INFO, "doInBackground", "GetNewPageRevIDAsync -> doInBackground success");
-            return pagesWithID;
-        }
-    }
-
-    private class GetPageRevIDAsync extends AsyncTask<Integer, String, ArrayList<Integer>> {
-
-        protected ArrayList<Integer> doInBackground(Integer... params) {
-            int count = params.length;
-            long revId = 0;
-
-            int rowCount = count / 50;
-            if(params.length % 50 != 0)
-                rowCount++;
-
-            ArrayList<String> pages = new ArrayList<String>();
-            ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
-
-            for(int i = 0; i < rowCount; i++){
-                for(int j = 0; j < 50 & count > i * 50 + j; j++){
-                    String year = String.valueOf(params[i * 50 + j]) + "_год";
-                    if (params[i * 50 + j] < 0) {
-                        year += "_до_н._э.";
-                        year = year.substring(1);
-                    }
-
-                    pages.add(year);
-                }
-                try {
-                    pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
-                } catch (IOException e) {
-                    isCrached = true;
-                    e.printStackTrace();
-                }
-                pages.clear();
+                pages.add(year);
             }
 
-            //return pagesWithID;
-
-
-
-
-            if(pagesWithID == null || pagesWithID.size() == 0)
-                return new ArrayList<Integer>();
-
-            //long res = Long.parseLong(result[1]);
-            SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-            Cursor cursor = db.query("Pages", new String[]{"year, revisionID"}, "year >= ? and year <= ?",
-                    new String[]{String.valueOf(globalYearStart), String.valueOf(globalYearFinish)}, null, null, null);
-
-            ArrayList<Integer> listForUpdateInner = new ArrayList<Integer>();
-
-            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            //dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
-            Date date = new Date();
-
-            if(cursor != null){
-                if(cursor.moveToFirst()){
-                    do {
-                        int year = cursor.getInt(cursor.getColumnIndex("year"));
-                        long revID = cursor.getInt(cursor.getColumnIndex("revisionID"));
-
-                        if(pagesWithID.get(new Integer(year)) == null){
-                            //pagesForDeleteDB.add(new PageModel(year, revID, dateFormat.format(date)));
-                        }
-                        else{
-                            long revIDFromWiki = pagesWithID.get(new Integer(year));
-                            if (revIDFromWiki != revID) {
-                                listForUpdateInner.add(new Integer(year));
-                            }
-                            pagesForUdateDB.add(new PageModel(year, revIDFromWiki, dateFormat.format(date)));
-                        }
-
-                    } while (cursor.moveToNext());
-                    //return listForUpdateInner;
-                }
-                cursor.close();
-                //return listForUpdateInner;
-            }
-            dbHelper.close();
-            log(Level.INFO, "doInBackground", "GetPageRevIDAsync -> doInBackground success");
-            return listForUpdateInner;
-
-        }
-
-        //        protected void onProgressUpdate(Integer... progress) {
-//            setProgressPercent(progress[0]);
-//        }
-
-//        protected void onPostExecute(ArrayMap<Integer, Long> pagesWithID) {
-//            if(pagesWithID == null)
-//                return;
-//
-//            //long res = Long.parseLong(result[1]);
-//            SQLiteDatabase db = dbHelper.getWritableDatabase();
-//
-//            Cursor cursor = db.query("Page", new String[]{"year, revisionID"}, "year >= ? and year <= ?",
-//                    new String[]{String.valueOf(startDate), String.valueOf(finishDate)}, null, null, null);
-//
-//            ArrayList<Integer> listForUpdate = new ArrayList<Integer>();
-//
-//            dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-//            dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
-//            Date date = new Date();
-//
-//            if(cursor != null){
-//                if(cursor.moveToFirst()){
-//                    do {
-//                        int year = cursor.getInt(cursor.getColumnIndex("year"));
-//                        long revID = cursor.getInt(cursor.getColumnIndex("revisionID"));
-//
-//                        if(pagesWithID.get(new Integer(year)) == null){
-//                            pagesForDeleteDB.add(new PageModel(year, revID, dateFormat.format(date)));
-//                        }
-//                        else{
-//                            long revIDFromWiki = pagesWithID.get(new Integer(year));
-//                            if (revIDFromWiki != revID) {
-//                                listForUpdate.add(new Integer(year));
-//                            }
-//                            pagesForUdateDB.add(new PageModel(year, revIDFromWiki, dateFormat.format(date)));
-//                        }
-//
-//                    } while (cursor.moveToNext());
-//
-//                    cursor.close();
-//
-//                    //ContentValues cv = new ContentValues();
-//
-//                    Integer[] listForUpdateMas = listForUpdate.toArray(new Integer[listForUpdate.size()]);
-//                    getPageAsync = new GetPageAsync();
-//                    getPageAsync.execute(listForUpdateMas);
-//
-////                    try {
-////                        getPageAsync.get(50000, TimeUnit.MILLISECONDS);
-////
-////                        cv.put("lastUpdate", Calendar.getInstance().toString());
-////                        db.update("Page", cv, "year >= ? and year <= ?",
-////                                new String[]{String.valueOf(startDate), String.valueOf(finishDate)});
-////                    } catch (InterruptedException e) {
-////                        e.printStackTrace();
-////                    } catch (ExecutionException e) {
-////                        e.printStackTrace();
-////                    } catch (TimeoutException e) {
-////                        e.printStackTrace();
-////                    }
-////                    finally {
-//                        dbHelper.close();
-//                    //}
-//
-//                }
-//
-//            }
-//        }
-    }
-
-    private class GetPageTemplatesAsync extends AsyncTask<String, String, ArrayList<String>> {
-
-        protected ArrayList<String> doInBackground(String... strs) {
-
-            ArrayList<String> lexesList = new ArrayList<String>(Arrays.asList(strs));
-            //ArrayList<String> titleWithCoordTemplate = wikipedia.getTitlePageWithCoordTemplate(lexesList);
-
-
-            ArrayList<String> titleWithCoordTemplate = new ArrayList<String>();
-            ArrayList<String> tempList = new ArrayList<String>();
-
-            int sizeParamsList = lexesList.size();
-            int rowCount = sizeParamsList / 50;
-            if(lexesList.size() % 50 != 0)
-                rowCount++;
-
-            for(int i = 0; i < rowCount; i++){
-                for(int j = 0; j < 50 & sizeParamsList > i * 50 + j; j++){
-                    tempList.add(lexesList.get(i * 50 + j));
-                }
-
-                try {
-                    titleWithCoordTemplate.addAll(wikipedia.getTitlePageWithCoordTemplate(tempList));
-                } catch (IOException e) {
-                    isCrached = true;
-                    e.printStackTrace();
-                }
-                tempList.clear();
-            }
-
-
-            for(int i = 0; i < titleWithCoordTemplate.size(); i++){
-                titleWithCoordTemplate.set(i, StringEscapeUtils.unescapeJava(titleWithCoordTemplate.get(i)));
-            }
-
-//            if (wikipedia.isContainCoordTemplate(strs[0])){
-//                return strs[0];
-//            }
-//            else
-//                return "";
-            log(Level.INFO, "doInBackground", "GetPageTemplatesAsync -> doInBackground success");
-            return titleWithCoordTemplate;
-        }
-
-//        protected void onPostExecute(String result) {
-//            if(result != "") {
-//                //try {
-//                    GetPageForCoordAsync getPageForCoordAsync = new GetPageForCoordAsync();
-//                    getPageForCoordAsync.execute(result);
-//                    //Object[] coord = ParseCoord(wikipedia.getPageText(result));
-//
-////                } catch (IOException e) {
-////                    e.printStackTrace();
-////                }
-//            }
-//        }
-//
-//        private class GetPageForCoordAsync extends AsyncTask<String, String, String> {
-//
-//            protected String doInBackground(String... strs) {
-//                int count = strs.length;
-//                String page = null;
-//                //long totalSize = 0;
-//                for (int i = 0; i < count; i++) {
-//                    try {
-//                        page = wikipedia.getPageText(strs[i]);
-//                    } catch (IOException e) {
-//                        e.printStackTrace();
-//                        return page;
-//                    }
-//                }
-//                return page;
-//            }
-//
-//            //        protected void onProgressUpdate(Integer... progress) {
-////            setProgressPercent(progress[0]);
-////        }
-////
-//            protected void onPostExecute(String result) {
-//                Object[] coord = ParseCoord(result);
-//
-//            }
-//        }
-    }
-
-    private class GetCoordsAsynk extends AsyncTask<String, String, ArrayMap<String, Coordinate>>{
-        @Override
-        protected ArrayMap<String, Coordinate> doInBackground(String... params) {
-
-            ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
-            ArrayMap<String, Coordinate> placesWithCoord = new ArrayMap<String, Coordinate>();
-            ArrayMap<String, Coordinate> coord =  new ArrayMap<String, Coordinate>();
-
-            //ArrayList<String> titleWithCoordTemplate = new ArrayList<String>();
-            ArrayList<String> tempList = new ArrayList<String>();
-
-            int sizeParamsList = paramsList.size();
-            int rowCount = sizeParamsList / 50;
-            if(paramsList.size() % 50 != 0)
-                rowCount++;
-
-            for(int i = 0; i < rowCount; i++){
-                for(int j = 0; j < 50 & sizeParamsList > i * 50 + j; j++){
-                    tempList.add(paramsList.get(i * 50 + j));
-                }
-
-                ArrayMap<String, LatLng> latLng = null;
-                try {
-                    latLng = wikipedia.getCoordinateForPlaces(tempList);
-                } catch (IOException e) {
-                    isCrached = true;
-                    e.printStackTrace();
-                }
-
-                for(int j = 0; j < latLng.size(); j++){
-                    placesWithCoord.put(latLng.keyAt(j), new Coordinate(latLng.valueAt(j)));
-                }
-
-                //placesWithCoord.putAll((Map<? extends String, ? extends Coordinate>) coord);
-                tempList.clear();
-                coord.clear();
-            }
-            log(Level.INFO, "doInBackground", "GetCoordsAsynk -> doInBackground success");
-            return  placesWithCoord;
-        }
-    }
-
-    private class GetPageRedirectAsync extends AsyncTask<String, String, ArrayList<String>>{
-        @Override
-        protected ArrayList<String> doInBackground(String... params) {
-
-            ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
-            HashSet<String> paramsSet = new HashSet<String>();
-            ArrayList<String> titleWithRedirect = new ArrayList<String>();
-
-            int sizeParamsList = paramsList.size();
-            int rowCount = sizeParamsList / 50;
-            if(paramsList.size() % 50 != 0)
-                rowCount++;
-
-            for(int i = 0; i < rowCount; i++){
-                for(int j = 1; j <= 50 & sizeParamsList > i * 50 + j; j++){
-                    paramsSet.add(paramsList.get(i * 50 + j));
-                }
-
-                try {
-                    titleWithRedirect.addAll(wikipedia.getTitlePageWithRedirect(paramsSet));
-                } catch (IOException e) {
-                    isCrached = true;
-                    e.printStackTrace();
-                }
-                paramsSet.clear();
-            }
-            //HashSet<String> paramsSet = new HashSet<String>(paramsList);
-
-
-            for(int i = 0; i < titleWithRedirect.size(); i++){
-                titleWithRedirect.set(i, StringEscapeUtils.unescapeJava(titleWithRedirect.get(i)));
-            }
-            log(Level.INFO, "doInBackground", "GetPageRedirectAsync -> doInBackground success");
-            return titleWithRedirect;
-        }
-    }
-
-    private class GetAddressPageForRedirectAsync extends AsyncTask<String, String, String>{
-        @Override
-        protected String doInBackground(String... params) {
-            String str = null;
             try {
-                str = wikipedia.getRedirectForPage(params[0]);
+                pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
             } catch (IOException e) {
                 isCrached = true;
                 e.printStackTrace();
             }
-            log(Level.INFO, "doInBackground", "GetAddressPageForRedirectAsync -> doInBackground success");
-            return str;
+            pages.clear();
         }
+        log(Level.INFO, "doInBackground", "GetNewPageRevIDAsync -> doInBackground success");
+        return pagesWithID;
+    }
+
+    private ArrayList<Integer> GetPageRevID(Integer[] params)  throws TimeoutException{
+
+        int count = params.length;
+        long revId = 0;
+
+        int rowCount = count / 50;
+        if (params.length % 50 != 0)
+            rowCount++;
+
+        ArrayList<String> pages = new ArrayList<String>();
+        ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
+
+        for (int i = 0; i < rowCount; i++) {
+            for (int j = 0; j < 50 & count > i * 50 + j; j++) {
+                String year = String.valueOf(params[i * 50 + j]) + "_год";
+                if (params[i * 50 + j] < 0) {
+                    year += "_до_н._э.";
+                    year = year.substring(1);
+                }
+
+                pages.add(year);
+            }
+            try {
+                pagesWithID.putAll((Map<? extends Integer, ? extends Long>) wikipedia.getPagesRevId(pages));
+            } catch (IOException e) {
+                isCrached = true;
+                e.printStackTrace();
+            }
+            pages.clear();
+        }
+
+        if (pagesWithID == null || pagesWithID.size() == 0)
+            return new ArrayList<Integer>();
+
+        //long res = Long.parseLong(result[1]);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        Cursor cursor = db.query("Pages", new String[]{"year, revisionID"}, "year >= ? and year <= ?",
+                new String[]{String.valueOf(globalYearStart), String.valueOf(globalYearFinish)}, null, null, null);
+
+        ArrayList<Integer> listForUpdateInner = new ArrayList<Integer>();
+
+        dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        //dateFormat.setTimeZone(TimeZone.getTimeZone("Europe/Kiev"));
+        Date date = new Date();
+
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                do {
+                    int year = cursor.getInt(cursor.getColumnIndex("year"));
+                    long revID = cursor.getInt(cursor.getColumnIndex("revisionID"));
+
+                    if (pagesWithID.get(new Integer(year)) == null) {
+                        //pagesForDeleteDB.add(new PageModel(year, revID, dateFormat.format(date)));
+                    } else {
+                        long revIDFromWiki = pagesWithID.get(new Integer(year));
+                        if (revIDFromWiki != revID) {
+                            listForUpdateInner.add(new Integer(year));
+                        }
+                        pagesForUdateDB.add(new PageModel(year, revIDFromWiki, dateFormat.format(date)));
+                    }
+
+                } while (cursor.moveToNext());
+                //return listForUpdateInner;
+            }
+            cursor.close();
+            //return listForUpdateInner;
+        }
+        dbHelper.close();
+        log(Level.INFO, "doInBackground", "GetPageRevIDAsync -> doInBackground success");
+        return listForUpdateInner;
+
+    }
+
+    private ArrayList<String> GetPageTemplates(String[] strs) throws TimeoutException {
+
+        ArrayList<String> lexesList = new ArrayList<String>(Arrays.asList(strs));
+
+        ArrayList<String> titleWithCoordTemplate = new ArrayList<String>();
+        ArrayList<String> tempList = new ArrayList<String>();
+
+        int sizeParamsList = lexesList.size();
+        int rowCount = sizeParamsList / 50;
+        if (lexesList.size() % 50 != 0)
+            rowCount++;
+
+        for (int i = 0; i < rowCount; i++) {
+            for (int j = 0; j < 50 & sizeParamsList > i * 50 + j; j++) {
+                tempList.add(lexesList.get(i * 50 + j));
+            }
+
+            try {
+                titleWithCoordTemplate.addAll(wikipedia.getTitlePageWithCoordTemplate(tempList));
+            } catch (IOException e) {
+                isCrached = true;
+                e.printStackTrace();
+            }
+            tempList.clear();
+        }
+
+
+        for (int i = 0; i < titleWithCoordTemplate.size(); i++) {
+            titleWithCoordTemplate.set(i, StringEscapeUtils.unescapeJava(titleWithCoordTemplate.get(i)));
+        }
+
+        log(Level.INFO, "doInBackground", "GetPageTemplatesAsync -> doInBackground success");
+        return titleWithCoordTemplate;
+
+    }
+
+    private ArrayMap<String, Coordinate> GetCoords(String[] params) throws TimeoutException {
+
+        ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
+        ArrayMap<String, Coordinate> placesWithCoord = new ArrayMap<String, Coordinate>();
+        ArrayMap<String, Coordinate> coord = new ArrayMap<String, Coordinate>();
+
+        //ArrayList<String> titleWithCoordTemplate = new ArrayList<String>();
+        ArrayList<String> tempList = new ArrayList<String>();
+
+        int sizeParamsList = paramsList.size();
+        int rowCount = sizeParamsList / 50;
+        if (paramsList.size() % 50 != 0)
+            rowCount++;
+
+        for (int i = 0; i < rowCount; i++) {
+            for (int j = 0; j < 50 & sizeParamsList > i * 50 + j; j++) {
+                tempList.add(paramsList.get(i * 50 + j));
+            }
+
+            ArrayMap<String, LatLng> latLng = null;
+            try {
+                latLng = wikipedia.getCoordinateForPlaces(tempList);
+            } catch (IOException e) {
+                isCrached = true;
+                e.printStackTrace();
+            }
+
+            for (int j = 0; j < latLng.size(); j++) {
+                placesWithCoord.put(latLng.keyAt(j), new Coordinate(latLng.valueAt(j)));
+            }
+
+            //placesWithCoord.putAll((Map<? extends String, ? extends Coordinate>) coord);
+            tempList.clear();
+            coord.clear();
+        }
+        log(Level.INFO, "doInBackground", "GetCoordsAsynk -> doInBackground success");
+        return placesWithCoord;
+    }
+
+    private ArrayList<String> GetPageRedirect(String[] params) throws TimeoutException {
+
+        ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
+        HashSet<String> paramsSet = new HashSet<String>();
+        ArrayList<String> titleWithRedirect = new ArrayList<String>();
+
+        int sizeParamsList = paramsList.size();
+        int rowCount = sizeParamsList / 50;
+        if (paramsList.size() % 50 != 0)
+            rowCount++;
+
+        for (int i = 0; i < rowCount; i++) {
+            for (int j = 1; j <= 50 & sizeParamsList > i * 50 + j; j++) {
+                paramsSet.add(paramsList.get(i * 50 + j));
+            }
+
+            try {
+                titleWithRedirect.addAll(wikipedia.getTitlePageWithRedirect(paramsSet));
+            } catch (IOException e) {
+                isCrached = true;
+                e.printStackTrace();
+            }
+            paramsSet.clear();
+        }
+        //HashSet<String> paramsSet = new HashSet<String>(paramsList);
+
+
+        for (int i = 0; i < titleWithRedirect.size(); i++) {
+            titleWithRedirect.set(i, StringEscapeUtils.unescapeJava(titleWithRedirect.get(i)));
+        }
+        log(Level.INFO, "doInBackground", "GetPageRedirectAsync -> doInBackground success");
+        return titleWithRedirect;
+
+    }
+
+    private String GetAddressPageForRedirect(String params[]) throws TimeoutException {
+
+        String str = null;
+        try {
+            str = wikipedia.getRedirectForPage(params[0]);
+        } catch (IOException e) {
+            isCrached = true;
+            e.printStackTrace();
+        }
+        log(Level.INFO, "doInBackground", "GetAddressPageForRedirectAsync -> doInBackground success");
+        return str;
+
     }
 
 
@@ -1428,17 +1065,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         }
 
         for(EventModel eventModel: eventsForDeleteDB){
-//            db.delete("Events", "year = ? and text = ?",
-//                    new String[]{String.valueOf(eventModel.year), String.valueOf(eventModel.text)});
             db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
         }
-
-//        for(PageModel pageModel : pagesForDeleteDB){
-////            db.delete("Pages", "year = ? and revisionID = ?",
-////                    new String[]{String.valueOf(pageModel.year), String.valueOf(pageModel.revID)});
-//            db.delete("Pages", "year = " + String.valueOf(pageModel.year) +
-//                    " and revisionID = " + String.valueOf(pageModel.revID), null);
-//        }
 
         for(PageModel pageModel : pagesForUdateDB) {
 
@@ -1554,8 +1182,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     eventsMarkers.get(i).iconID = R.drawable.number_10_;
                     break;
 
-//            String path = "mapicons-numbers/number_" + eventsMarkers.get(i).eventWithYears.size() + ".png";
-//            eventsMarkers.get(i).pathToIcon = path;
             }
         }
 
@@ -1564,184 +1190,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
 
-
-    private Coordinate ParseCoord(String fullText){
-
-        double lonSign = 1;
-        double latSign = 1;
-        double longitude = 0;
-        double latitude = 0;
-
-        int x = 0;//begin
-        int y = 0;//end
-        int z = 0;//=
-
-
-
-
-        x = fullText.indexOf("lat_dir");
-        if(x < 0)
-            latSign = -1;
-        else{
-            y = fullText.indexOf("|", x);
-            z = fullText.indexOf("=", x);
-
-            String dir = fullText.substring(z, y);
-            dir = dir.trim();
-            if(dir == "S")
-                latSign = -1;
-            else
-                latSign = 1;
-        }
-
-        x = fullText.indexOf("lon_dir ");
-        if(x < 0)
-            lonSign = -1;
-        else{
-            y = fullText.indexOf("|", x);
-            z = fullText.indexOf("=", x);
-
-            String dir = fullText.substring(z, y);
-            dir = dir.trim();
-            if(dir == "W")
-                lonSign = -1;
-            else
-                lonSign = 1;
-        }
-
-
-
-
-        x = fullText.indexOf("lat_deg");
-        if(x >= 0){
-            y = fullText.indexOf("|", x);
-            z = fullText.indexOf("=", x);
-
-            String deg = fullText.substring(z, y);
-            deg = deg.trim();
-            if(deg != "") {
-                double degInt = Double.parseDouble(deg);
-                latitude += degInt;
-            }
-        }
-        x = fullText.indexOf("lat_min");
-        if(x >= 0){
-            y = fullText.indexOf("|", x);
-            z = fullText.indexOf("=", x);
-
-            String min = fullText.substring(z, y);
-            min = min.trim();
-            if(min != "") {
-                double minInt = Double.parseDouble(min);
-                latitude += minInt/60;
-            }
-        }
-        x = fullText.indexOf("lat_sec");
-        if(x >= 0){
-            y = fullText.indexOf("|", x);
-            z = fullText.indexOf("=", x);
-
-            String sec = fullText.substring(z, y);
-            sec = sec.trim();
-            if(sec != "") {
-                double secInt = Double.parseDouble(sec);
-                latitude += secInt/3600;
-            }
-        }
-
-        latitude *= latSign;
-
-
-
-
-        x = fullText.indexOf("lon_deg");
-        if(x >= 0){
-            y = fullText.indexOf("|", x);
-            z = fullText.indexOf("=", x);
-
-            String deg = fullText.substring(z, y);
-            deg = deg.trim();
-            if(deg != "") {
-                double degInt = Double.parseDouble(deg);
-                longitude += degInt;
-            }
-        }
-        x = fullText.indexOf("lon_min");
-        if(x >= 0){
-            y = fullText.indexOf("|", x);
-            z = fullText.indexOf("=", x);
-
-            String min = fullText.substring(z, y);
-            min = min.trim();
-            if(min != "") {
-                double minInt = Double.parseDouble(min);
-                longitude += minInt/60;
-            }
-        }
-        x = fullText.indexOf("lon_sec");
-        if(x >= 0){
-            y = fullText.indexOf("|", x);
-            z = fullText.indexOf("=", x);
-
-            String sec = fullText.substring(z, y);
-            sec = sec.trim();
-            if(sec != "") {
-                double secInt = Double.parseDouble(sec);
-                longitude += secInt/3600;
-            }
-        }
-
-        longitude *= lonSign;
-
-//        int lat_dir_indx; int lat_deg_indx; int lat_min_indx; int lat_sec_indx;
-//        int lon_dir_indx; int lon_deg_indx; int lon_min_indx; int lon_sec_indx;
-//
-//        int lat_dir_indx_end; int lat_deg_indx_end; int lat_min_indx_end; int lat_sec_indx_end;
-//        int lon_dir_indx_end; int lon_deg_indx_end; int lon_min_indx_end; int lon_sec_indx_end;
-//
-//        lat_dir_indx = fullText.indexOf("lat_dir");
-//        lat_deg_indx = fullText.indexOf("lat_deg");
-//        lat_min_indx = fullText.indexOf("lat_min");
-//        lat_sec_indx = fullText.indexOf("lat_sec");
-//        lon_dir_indx = fullText.indexOf("lon_dir");
-//        lon_deg_indx = fullText.indexOf("lon_deg");
-//        lon_min_indx = fullText.indexOf("lon_min");
-//        lon_sec_indx = fullText.indexOf("lon_sec");
-//        if(lat_dir_indx >= 0)
-//            lat_dir_indx_end = fullText.indexOf("|", lat_dir_indx + 9);
-//        lat_deg_indx_end = fullText.indexOf("|", lat_deg_indx + 9);
-//        lat_min_indx_end = fullText.indexOf("|", lat_min_indx + 9);
-//        lat_sec_indx_end = fullText.indexOf("|", lat_sec_indx + 9);
-//        if(lon_dir_indx >= 0)
-//            lon_dir_indx_end = fullText.indexOf("|", lon_dir_indx + 9);
-//        lon_deg_indx_end = fullText.indexOf("|", lon_deg_indx + 9);
-//        lon_min_indx_end = fullText.indexOf("|", lon_min_indx + 9);
-//        lon_sec_indx_end = fullText.indexOf("|", lon_sec_indx + 9);
-//
-////        if(lat_dir_indx >= 0)
-////            coord[0] = fullText.substring(lat_dir_indx, lat_dir_indx_end);
-////        else coord[0] = "N";
-//        coord[1] = fullText.substring(lat_deg_indx, lat_deg_indx_end);
-//        coord[2] = fullText.substring(lat_min_indx, lat_min_indx_end);
-//        coord[3] = fullText.substring(lat_sec_indx, lat_sec_indx_end);
-////        if(lon_dir_indx != -1)
-////            coord[4] = fullText.substring(lon_dir_indx, lon_dir_indx_end);
-////        else coord[4] = "E";
-//        coord[5] = fullText.substring(lon_deg_indx, lon_deg_indx_end);
-//        coord[6] = fullText.substring(lon_min_indx, lon_min_indx_end);
-//        coord[7] = fullText.substring(lon_sec_indx, lon_sec_indx_end);
-//
-//        coord[0] = ((String)(coord[0])).trim();
-//        coord[1] = ((String)(coord[1])).trim();
-//        coord[2] = ((String)(coord[2])).trim();
-//        coord[3] = ((String)(coord[3])).trim();
-//        coord[4] = ((String)(coord[4])).trim();
-//        coord[5] = ((String)(coord[5])).trim();
-//        coord[6] = ((String)(coord[6])).trim();
-//        coord[7] = ((String)(coord[7])).trim();
-        log(Level.INFO, "ParseCoord", "ParseCoord success");
-        return new Coordinate(latitude, longitude);
-    }
 
     private ArrayList<EventModel> ParseEvent(ArrayMap<Integer, String> eventsByYear){
 
@@ -1971,10 +1419,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     evnt =  evnt.substring(0, startEv) + evnt.substring(startEv + 2, evnt.length() - 1);
                 }
             }
-//        else {
-//            String hi = evnt;
-//            return;
-//        }
+
             return evnt;
         } finally {
             log(Level.INFO, "TrimHooks", "TrimHooks success");
@@ -2029,11 +1474,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     .snippet(Integer.toString(item.eventWithYears.get(0).year));
             log(Level.INFO, "onBeforeClusterItemRendered", "EventRenderer -> onBeforeClusterItemRendered success");
         }
-
-//        @Override
-//        protected void onBeforeClusterRendered(Cluster<EventsMarker> cluster, MarkerOptions markerOptions) {
-//            super.onBeforeClusterRendered(cluster, markerOptions);
-//        }
 
         @Override
         protected boolean shouldRenderAsCluster(Cluster cluster) {
@@ -2101,33 +1541,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         @Override
         public View getInfoWindow(Marker marker) {
-//            View v = getLayoutInflater().inflate(R.layout.info_window_layout, null);
-//            LinearLayout layout = (LinearLayout) v.findViewById(R.id.main_layout);
-//            List<EventWithYear> eventWithYearList = new ArrayList<EventWithYear>();
-//            if (clickedClusterItem != null) {
-//                eventWithYearList = clickedClusterItem.getEventWithYears();
-//
-//                for (EventWithYear eventWithYear : eventWithYearList) {
-//                    TextView tViewEvent = new TextView(context);
-//                    TextView tViewDate = new TextView(context);
-//                    tViewEvent.setTextColor(getResources().getColor(R.color.black));
-//                    tViewDate.setTextColor(getResources().getColor(R.color.grey));
-//                    tViewDate.setGravity(View.TEXT_ALIGNMENT_VIEW_END);
-//                    tViewDate.setTextSize(11);
-//                    tViewEvent.setMaxHeight(50);
-//                    tViewEvent.setMaxWidth(300);
-//                    tViewDate.setMaxHeight(50);
-//                    tViewDate.setMaxWidth(300);
-//                    tViewDate.setMaxWidth(300);
-//                    tViewEvent.setText(eventWithYear.text);
-//                    tViewDate.setText(Integer.toString(eventWithYear.year));
-//
-//                    layout.addView(tViewEvent);
-//                    layout.addView(tViewDate);
-//                }
-//
-//                return v;
-//            }
             return null;
         }
     }
