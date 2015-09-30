@@ -77,6 +77,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     int globalYearFinish;
     int innerYearStart;
     int innerYearfinish;
+    String textBtn;
 
     Wiki wikipedia;
 
@@ -158,7 +159,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         innerYearfinish = globalYearFinish;
 
         mainButton = (Button) this.findViewById(R.id.settingsButton);
-        String textBtn = "";
+        textBtn = "";
         if (globalYearStart < 0) textBtn += globalYearStart * -1 + "бя - ";
         else textBtn += globalYearStart + " - ";
         if (globalYearFinish < 0) textBtn += globalYearFinish * -1 + "бя";
@@ -177,8 +178,17 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
 
         if(isConnected) {
-            initAsync = new InitAsync();
-            initAsync.execute();
+            if (initAsync == null || initAsync.getStatus() != AsyncTask.Status.RUNNING) {
+                mainButton.setText("!Async!");
+                MakeMarkers();
+                mClusterManager.cluster();
+
+                initAsync = (InitAsync) getLastCustomNonConfigurationInstance();
+                if(initAsync == null) {
+                    initAsync = new InitAsync();
+                    initAsync.execute();
+                }
+            }
         }
         else {
             Toast.makeText(this, "Something wrong", Toast.LENGTH_LONG);
@@ -291,8 +301,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public Object onRetainCustomNonConfigurationInstance() {
 
         log(Level.INFO, "onRetainCustomNonConfigurationInstance", "onRetainCustomNonConfigurationInstance success");
-        return null;
+        return initAsync;
     }
+
+
 
     private void InitClusterer(){
         mClusterManager = new ClusterManager<EventsMarker>(this, map);
@@ -728,6 +740,15 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private class InitAsync extends AsyncTask<Void, Void, Integer > {
 
+        MainActivity activity;
+
+        void link(MainActivity act){
+            activity = act;
+        }
+        void unLink(){
+            activity = null;
+        }
+
         protected Integer doInBackground(Void... params) {
 
             ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
@@ -735,7 +756,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             List<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
             List<EventWithLex> eventWithLexes = new ArrayList<EventWithLex>();
             SortedSet<EventModel> events = new TreeSet<EventModel>();
-
 
             GetPagesForUpdateDeleteCreate();
 
@@ -763,6 +783,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             if(isCrached)
                 Toast.makeText(context, "Data is not updated. Check the connection", Toast.LENGTH_LONG);
 
+            mainButton.setText(textBtn);
             MakeMarkers();
             mClusterManager.cluster();
 
@@ -1050,51 +1071,56 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         ContentValues cv = new ContentValues();
 
         db.beginTransaction();
-        for(EventModel eventModel: events){
 
-            cv.put("year", eventModel.year);
-            cv.put("event", eventModel.text);
-            if(eventModel.coord != null) {
-                cv.put("latitude", eventModel.coord.getmPosition().latitude);
-                cv.put("longitude", eventModel.coord.getmPosition().longitude);
+        try {
+            for (EventModel eventModel : events) {
+
+                cv.put("year", eventModel.year);
+                cv.put("event", eventModel.text);
+                if (eventModel.coord != null) {
+                    cv.put("latitude", eventModel.coord.getmPosition().latitude);
+                    cv.put("longitude", eventModel.coord.getmPosition().longitude);
+                }
+
+                db.insert("Events", null, cv);
+
+                cv.clear();
             }
 
-            db.insert("Events", null, cv);
+            for (EventModel eventModel : eventsForDeleteDB) {
+                db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
+            }
 
-            cv.clear();
+            for (PageModel pageModel : pagesForUdateDB) {
+
+                cv.put("revisionID", pageModel.revID);
+                cv.put("lastUpdate", pageModel.lastUpdate);
+
+                db.update("Pages", cv, "year = ?",
+                        new String[]{String.valueOf(pageModel.year)});
+
+                cv.clear();
+            }
+
+            for (PageModel pageModel : pagesForIsertDB) {
+
+                cv.put("year", pageModel.year);
+                cv.put("revisionID", pageModel.revID);
+                cv.put("lastUpdate", pageModel.lastUpdate);
+
+                db.insert("Pages", null, cv);
+
+                cv.clear();
+            }
+
+            db.setTransactionSuccessful();
+
+        } finally {
+            db.endTransaction();
+            dbHelper.close();
+            log(Level.INFO, "WriteDB", "WriteDB success");
         }
 
-        for(EventModel eventModel: eventsForDeleteDB){
-            db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
-        }
-
-        for(PageModel pageModel : pagesForUdateDB) {
-
-            cv.put("revisionID", pageModel.revID);
-            cv.put("lastUpdate", pageModel.lastUpdate);
-
-            db.update("Pages", cv, "year = ?",
-                    new String[]{String.valueOf(pageModel.year)});
-
-            cv.clear();
-        }
-
-        for(PageModel pageModel : pagesForIsertDB){
-
-            cv.put("year", pageModel.year);
-            cv.put("revisionID", pageModel.revID);
-            cv.put("lastUpdate", pageModel.lastUpdate);
-
-            db.insert("Pages", null, cv);
-
-            cv.clear();
-        }
-
-        db.setTransactionSuccessful();
-        db.endTransaction();
-
-        dbHelper.close();
-        log(Level.INFO, "WriteDB", "WriteDB success");
     }
 
     private void MakeMarkers() {

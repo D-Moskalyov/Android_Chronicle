@@ -146,8 +146,7 @@ public class Wiki implements Serializable{
         return coordinate;
     }
 
-    protected String fetch(String url, String caller) throws IOException
-    {
+    protected String fetch(String url, String caller) throws IOException {
         // connect
         logurl(url, caller);
         URLConnection connection = makeConnection(url);
@@ -160,19 +159,14 @@ public class Wiki implements Serializable{
 
         // check lag
         int lag = connection.getHeaderFieldInt("X-Database-Lag", -5);
-        if (lag > maxlag)
-        {
-            try
-            {
-                synchronized(this)
-                {
+        if (lag > maxlag) {
+            try {
+                synchronized (this) {
                     int time = connection.getHeaderFieldInt("Retry-After", 10);
                     log(Level.WARNING, caller, "Current database lag " + lag + " s exceeds " + maxlag + " s, waiting " + time + " s.");
                     Thread.sleep(time * 1000);
                 }
-            }
-            catch (InterruptedException ex)
-            {
+            } catch (InterruptedException ex) {
                 // nobody cares
             }
             return fetch(url, caller); // retry the request
@@ -181,7 +175,7 @@ public class Wiki implements Serializable{
         // get the text
         String temp;
         BufferedReader in;
-        try {
+        //try {
             if (zipped) {
                 in = new BufferedReader(new InputStreamReader(new GZIPInputStream(connection.getInputStream())));
             } else {
@@ -189,59 +183,28 @@ public class Wiki implements Serializable{
             }
             String line;
             StringBuilder text = new StringBuilder(100000);
-            while ((line = in.readLine()) != null)
-            {
+            while ((line = in.readLine()) != null) {
                 text.append(line);
                 text.append("\n");
             }
             temp = text.toString();
-
-            if (temp.contains("<error code="))
-            {
-                // assertions
-                if ((assertion & ASSERT_BOT) == ASSERT_BOT && temp.contains("error code=\"assertbotfailed\""))
-                    // assert !temp.contains("error code=\"assertbotfailed\"") : "Bot privileges missing or revoked, or session expired.";
-                    throw new AssertionError("Bot privileges missing or revoked, or session expired.");
-                if ((assertion & ASSERT_USER) == ASSERT_USER && temp.contains("error code=\"assertuserfailed\""))
-                    // assert !temp.contains("error code=\"assertuserfailed\"") : "Session expired.";
-                    throw new AssertionError("Session expired.");
-                // Something *really* bad happened. Most of these are self-explanatory
-                // and are indicative of bugs (not necessarily in this framework) or
-                // can be avoided entirely.
-                if (!temp.matches("code=\"(rvnosuchsection)")) // list "good" errors here
-                    throw new UnknownError("MW API error. Server response was: " + temp);
-            }
-            return temp;
+        //}
+        if (temp.contains("<error code=")) {
+            // assertions
+            if ((assertion & ASSERT_BOT) == ASSERT_BOT && temp.contains("error code=\"assertbotfailed\""))
+                // assert !temp.contains("error code=\"assertbotfailed\"") : "Bot privileges missing or revoked, or session expired.";
+                throw new AssertionError("Bot privileges missing or revoked, or session expired.");
+            if ((assertion & ASSERT_USER) == ASSERT_USER && temp.contains("error code=\"assertuserfailed\""))
+                // assert !temp.contains("error code=\"assertuserfailed\"") : "Session expired.";
+                throw new AssertionError("Session expired.");
+            // Something *really* bad happened. Most of these are self-explanatory
+            // and are indicative of bugs (not necessarily in this framework) or
+            // can be avoided entirely.
+            if (!temp.matches("code=\"(rvnosuchsection)")) // list "good" errors here
+                throw new UnknownError("MW API error. Server response was: " + temp);
         }
-        catch (Exception ex){ throw new IOException();}
-//        try (BufferedReader in = new BufferedReader(new InputStreamReader(
-//                zipped ? new GZIPInputStream(connection.getInputStream()) : connection.getInputStream(), "UTF-8")))
-//        {
-//            String line;
-//            StringBuilder text = new StringBuilder(100000);
-//            while ((line = in.readLine()) != null)
-//            {
-//                text.append(line);
-//                text.append("\n");
-//            }
-//            temp = text.toString();
-//        }
-//        if (temp.contains("<error code="))
-//        {
-//            // assertions
-//            if ((assertion & ASSERT_BOT) == ASSERT_BOT && temp.contains("error code=\"assertbotfailed\""))
-//                // assert !temp.contains("error code=\"assertbotfailed\"") : "Bot privileges missing or revoked, or session expired.";
-//                throw new AssertionError("Bot privileges missing or revoked, or session expired.");
-//            if ((assertion & ASSERT_USER) == ASSERT_USER && temp.contains("error code=\"assertuserfailed\""))
-//                // assert !temp.contains("error code=\"assertuserfailed\"") : "Session expired.";
-//                throw new AssertionError("Session expired.");
-//            // Something *really* bad happened. Most of these are self-explanatory
-//            // and are indicative of bugs (not necessarily in this framework) or
-//            // can be avoided entirely.
-//            if (!temp.matches("code=\"(rvnosuchsection)")) // list "good" errors here
-//                throw new UnknownError("MW API error. Server response was: " + temp);
-//        }
-//        return temp;
+        return temp;
+        //catch (Exception ex){ throw new IOException();}
     }
 
 //    protected void setCookies(URLConnection u)
