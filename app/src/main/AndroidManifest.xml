@@ -37,30 +37,30 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".FragmentPreferenceActivity"
-                  android:label="MyPreferences" >
-            <intent-filter>
-                <category android:name="ANDROID.INTENT.CATEGORY.PREFERENCE" />
-            </intent-filter>
-        </activity>
+        <!--<activity android:name=".FragmentPreferenceActivity"-->
+                  <!--android:label="MyPreferences" >-->
+            <!--<intent-filter>-->
+                <!--<category android:name="ANDROID.INTENT.CATEGORY.PREFERENCE" />-->
+            <!--</intent-filter>-->
+        <!--</activity>-->
 
         <activity android:name=".ListEventsActivity"
                   android:label="ListEventsActivity" >
         </activity>
 
-        <activity android:name=".WheelViewActivity"
-                  android:label="WheelViewActivity" >
-            <intent-filter>
-                <action android:name="WheelViewStarted" />
-            </intent-filter>
-        </activity>
+        <!--<activity android:name=".WheelViewActivity"-->
+                  <!--android:label="WheelViewActivity" >-->
+            <!--<intent-filter>-->
+                <!--<action android:name="WheelViewStarted" />-->
+            <!--</intent-filter>-->
+        <!--</activity>-->
 
-        <activity android:name=".OldPreferenceActivity"
-                  android:label="MyPreferences" >
-            <intent-filter>
-                <category android:name="ANDROID.INTENT.CATEGORY.PREFERENCE" />
-            </intent-filter>
-        </activity>
+        <!--<activity android:name=".OldPreferenceActivity"-->
+                  <!--android:label="MyPreferences" >-->
+            <!--<intent-filter>-->
+                <!--<category android:name="ANDROID.INTENT.CATEGORY.PREFERENCE" />-->
+            <!--</intent-filter>-->
+        <!--</activity>-->
 
         <activity android:name=".SettingActivity"
                   android:label="Settings" >
