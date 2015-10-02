@@ -59,6 +59,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     InitAsync initAsync;
 
     boolean isConnected;
+    //boolean justRotate;
 
     Context context;
     EventsMarker clickedClusterItem;
@@ -96,8 +97,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         locationManager = (LocationManager)getSystemService(LOCATION_SERVICE);
 
         mainButton = (Button) this.findViewById(R.id.settingsButton);
-        innerYearStart = 0;
-        innerYearfinish = 0;
+
+        if(savedInstanceState != null) {
+            innerYearStart = savedInstanceState.getInt("innerYearStart", 0);
+            innerYearfinish = savedInstanceState.getInt("innerYearfinish", 0);
+        }
 
         cm = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
         activeNetwork = cm.getActiveNetworkInfo();
@@ -114,11 +118,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         super.onResume();
 
         SetStartFinishYear(settings);
-        if (innerYearStart == globalYearStart & innerYearfinish == globalYearFinish)//настройки не поменялись
-            return;
-
-        innerYearStart = globalYearStart;
-        innerYearfinish = globalYearFinish;
 
         textBtn = "";
         if (globalYearStart < 0) textBtn += globalYearStart * -1 + "ВС - ";
@@ -126,7 +125,20 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (globalYearFinish < 0) textBtn += globalYearFinish * -1 + "ВС";
         else textBtn += globalYearFinish;
 
-        mainButton.setText("UPDATING");
+        if (globalYearFinish == innerYearfinish && globalYearStart == innerYearStart){
+            if(initAsync.getStatus() == AsyncTask.Status.RUNNING)
+                mainButton.setText("UPDATING");
+            else
+                mainButton.setText(textBtn);
+            MakeMarkers();
+            mClusterManager.cluster();
+
+            return;
+        }
+        //justRotate = true;
+
+        innerYearStart = globalYearStart;
+        innerYearfinish = globalYearFinish;
 
         isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
 
@@ -139,13 +151,16 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                     initAsync = new InitAsync();
                     initAsync.link(this);
                 }
+                mainButton.setText("UPDATING");
                 initAsync.execute();
             }
-            else{
-                //остановить поток и запустить заново
+            else {
+                initAsync.cancel(false);
+                mainButton.setText("STOPPING");
             }
         }
         else {
+
             mainButton = (Button) this.findViewById(R.id.settingsButton);
             mainButton.setText(textBtn);
 
@@ -156,6 +171,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         Log.i("onResume", "onResume success");
     }
+
 
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
@@ -208,6 +224,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        //super.onSaveInstanceState(outState);
+        outState.putInt("innerYearStart", innerYearStart);
+        outState.putInt("innerYearfinish", innerYearfinish);
+    }
+
+    @Override
     public void onMapReady(GoogleMap map) {
 
         Log.i("onMapReady", "onMapReady success");
@@ -216,6 +239,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if(requestCode == SHOW_PREFERENCES) {
+            //justRotate = false;
             super.onActivityResult(requestCode, resultCode, data);
         }
         Log.i("onActivityResult", "onActivityResult success");
@@ -309,6 +333,14 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         Log.i("InitClusterer", "InitClusterer success");
+    }
+
+    protected void RestartAsync(){
+        initAsync.unLink();
+        initAsync = new InitAsync();
+        initAsync.link(this);
+        mainButton.setText("UPDATING");
+        initAsync.execute();
     }
 
 

@@ -88,15 +88,15 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
         if (listForFirstInit.size() != 0 || listForUpdate.size() != 0 & !isCrached)
             allEvntsByYear = GetPageForParse(listForFirstInit, listForUpdate);
-        if (allEvntsByYear.size() != 0 & !isCrached)
+        if (allEvntsByYear != null & allEvntsByYear.size() != 0 & !isCrached)
             eventsToParseLex = ParseEvent(allEvntsByYear);
-        if (eventsToParseLex.size() != 0 & !isCrached)
+        if (eventsToParseLex != null & eventsToParseLex.size() != 0 & !isCrached)
             eventWithLexList = ParseLexFromEvents(eventsToParseLex);
-        if (eventWithLexList.size() != 0 & !isCrached)
+        if (eventWithLexList != null & eventWithLexList.size() != 0 & !isCrached)
             eventWithLexes = GetRedirectForLexemes(eventWithLexList);
-        if (eventWithLexes.size() != 0 & !isCrached)
+        if (eventWithLexes != null & eventWithLexes.size() != 0 & !isCrached)
             events = GetCoordForEvent(eventWithLexes);
-        if (!isCrached)
+        if (!isCrached & !isCancelled())
             WriteDB(events);
 
         log(Level.INFO, "doInBackground", "InitAsync -> doInBackground success");
@@ -117,10 +117,23 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         log(Level.INFO, "doInBackground", "InitAsync -> onPostExecute success");
     }
 
+    @Override
+    protected void onCancelled() {
+        super.onCancelled();
+        log(Level.INFO, "onCancelled", "onCancelled success");
+        activity.mainButton.setText("STOPPED");
+        activity.MakeMarkers();
+        activity.mClusterManager.cluster();
+
+        activity.RestartAsync();
+    }
 
 
 
     private void GetPagesForUpdateDeleteCreate(){
+        if(isCancelled())
+            return;
+
         db = dbHelper.getWritableDatabase();
         String glYearStart = Integer.toString(activity.globalYearStart);
         String glYearFinish = Integer.toString(activity.globalYearFinish);
@@ -180,6 +193,9 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private ArrayMap<Integer, String> GetPageForParse(ArrayList<Integer> listForFirstInit, ArrayList<Integer>listForUpdate){
+        if(isCancelled())
+            return null;
+
         try {
             ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
 
@@ -226,6 +242,9 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private Integer[] GetNewPageForInsertIntoDB(ArrayList<Integer> listForFirstInit){
+        if(isCancelled())
+            return null;
+
         if(listForFirstInit != null & listForFirstInit.size() != 0) {
             Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
 
@@ -253,6 +272,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private ArrayMap<Integer, String> GetPage (Integer [] params) throws TimeoutException{
+        if(isCancelled())
+            return null;
 
         int count = params.length;
         ArrayMap<Integer, String> pages = new ArrayMap<Integer, String>();
@@ -291,6 +312,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private ArrayList<Integer> GetPageRevID(Integer[] params)  throws TimeoutException{
+        if(isCancelled())
+            return null;
 
         int count = params.length;
         long revId = 0;
@@ -365,6 +388,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private ArrayMap<Integer, Long> GetNewPageRevID(Integer [] params) throws TimeoutException {
+        if(isCancelled())
+            return null;
 
         int count = listForFirstInit.size();
         int rowCount = count / 50;
@@ -398,6 +423,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private ArrayList<EventWithLex> ParseLexFromEvents(ArrayList<EventModel> events){
+        if(isCancelled())
+            return null;
 
         ArrayList<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
 
@@ -480,6 +507,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private List<EventWithLex> GetRedirectForLexemes(List<EventWithLex> eventWithLexes){
+        if(isCancelled())
+            return null;
 
         ArrayList<String> rawLex = new ArrayList<String>();
 
@@ -523,6 +552,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private ArrayList<String> GetPageRedirect(String[] params) throws TimeoutException {
+        if(isCancelled())
+            return null;
 
         ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
         HashSet<String> paramsSet = new HashSet<String>();
@@ -558,6 +589,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private String GetAddressPageForRedirect(String params[]) throws TimeoutException {
+        if(isCancelled())
+            return null;
 
         String str = null;
         try {
@@ -572,6 +605,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private SortedSet<EventModel> GetCoordForEvent(List<EventWithLex> eventWithLexes){
+        if(isCancelled())
+            return null;
 
         SortedSet<EventModel> events = new TreeSet<EventModel>();
         ArrayList<String> allLexemes = new ArrayList<String>();
@@ -625,6 +660,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private ArrayList<String> GetPageTemplates(String[] strs) throws TimeoutException {
+        if(isCancelled())
+            return null;
 
         ArrayList<String> lexesList = new ArrayList<String>(Arrays.asList(strs));
 
@@ -661,6 +698,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private ArrayMap<String, Coordinate> GetCoords(String[] params) throws TimeoutException {
+        if(isCancelled())
+            return null;
 
         ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
         ArrayMap<String, Coordinate> placesWithCoord = new ArrayMap<String, Coordinate>();
@@ -702,6 +741,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
 
     private ArrayList<EventModel> ParseEvent(ArrayMap<Integer, String> eventsByYear){
+        if(isCancelled())
+            return null;
 
         List<EventModel> eventList = new ArrayList<EventModel>();
 
@@ -844,6 +885,9 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private String ParseEventHelperRef(String eventItem){
+        if(isCancelled())
+            return null;
+
         int startRef;
         int finishRef;
 
@@ -888,6 +932,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private String TrimHooks(String evnt) {
+        if(isCancelled())
+            return null;
 
         //int startToNext = start;
         try {
@@ -920,6 +966,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     }
 
     private String PunctuationHook(String word){
+        if(isCancelled())
+            return null;
 
         word = word.replace(" ", "");
         word = word.replace(",", "");
@@ -939,6 +987,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
 
     private void WriteDB(SortedSet<EventModel> events) {
+        if(isCancelled())
+            return;
 
         db = dbHelper.getWritableDatabase();
         ContentValues cv = new ContentValues();
