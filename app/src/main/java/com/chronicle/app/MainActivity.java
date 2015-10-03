@@ -502,7 +502,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             mImageView = new ImageView(getApplicationContext());
             mDimension = (int) getResources().getDimension(R.dimen.custom_profile_image);
             mImageView.setLayoutParams(new ViewGroup.LayoutParams(mDimension, mDimension));
-            Log.i("EventRenderer", "EventRenderer -> EventRenderer success");
+            //Log.i("EventRenderer", "EventRenderer -> EventRenderer success");
         }
 
         @Override

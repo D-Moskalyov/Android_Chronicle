@@ -99,7 +99,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         if (!isCrached & !isCancelled())
             WriteDB(events);
 
-        log(Level.INFO, "doInBackground", "InitAsync -> doInBackground success");
+        log(Level.INFO, "InitAsync", "InitAsync -> doInBackground success");
         return null;
     }
 
@@ -114,7 +114,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         activity.MakeMarkers();
         activity.mClusterManager.cluster();
 
-        log(Level.INFO, "doInBackground", "InitAsync -> onPostExecute success");
+        log(Level.INFO, "InitAsync", "InitAsync -> onPostExecute success");
     }
 
     @Override
@@ -126,6 +126,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         activity.mClusterManager.cluster();
 
         activity.RestartAsync();
+
+        log(Level.INFO, "InitAsync", "InitAsync -> onCancelled success");
     }
 
 
@@ -167,7 +169,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
                     long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
 
-                    if (diff / (60 * 1000) > 1200) {
+                    if (diff / (60 * 1000) > 2) {
                         listForUpdate.add(yearFromDB);
                     } else {
                         listForNotUpdate.add(yearFromDB);
@@ -194,7 +196,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private ArrayMap<Integer, String> GetPageForParse(ArrayList<Integer> listForFirstInit, ArrayList<Integer>listForUpdate){
         if(isCancelled())
-            return null;
+            return new ArrayMap<Integer, String>();
 
         try {
             ArrayMap<Integer, String> allEvntsByYear = new ArrayMap<Integer, String>();
@@ -243,7 +245,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private Integer[] GetNewPageForInsertIntoDB(ArrayList<Integer> listForFirstInit){
         if(isCancelled())
-            return null;
+            return new Integer[]{};
 
         if(listForFirstInit != null & listForFirstInit.size() != 0) {
             Integer[] masForFirstInit = listForFirstInit.toArray(new Integer[listForFirstInit.size()]);
@@ -273,12 +275,14 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private ArrayMap<Integer, String> GetPage (Integer [] params) throws TimeoutException{
         if(isCancelled())
-            return null;
+            return new ArrayMap<Integer, String>();
 
         int count = params.length;
         ArrayMap<Integer, String> pages = new ArrayMap<Integer, String>();
         //long totalSize = 0;
         for (int i = 0; i < count; i++) {
+            if(isCancelled())
+                return new ArrayMap<Integer, String>();
             String year = String.valueOf(params[i]) + "_год";
             if (params[i] < 0) {
                 year += "_до_н._э.";
@@ -288,8 +292,9 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
                 String text = wikipedia.getPageText(year);
                 pages.put(params[i], text);
             } catch (IOException e) {
-                isCrached = true;
+                //isCrached = true;
                 e.printStackTrace();
+                continue;
                 //return page;
             }
         }
@@ -306,14 +311,14 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
                     !pages.valueAt(i).contains("#redirect"))
                 allEvntsByYear.put(pages.keyAt(i), pages.valueAt(i));
         }
-        log(Level.INFO, "doInBackground", "GetPageAsync -> doInBackground success");
+        log(Level.INFO, "GetPage", "GetPage success");
         return allEvntsByYear;
 
     }
 
     private ArrayList<Integer> GetPageRevID(Integer[] params)  throws TimeoutException{
         if(isCancelled())
-            return null;
+            return new ArrayList<Integer>();
 
         int count = params.length;
         long revId = 0;
@@ -326,6 +331,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
 
         for (int i = 0; i < rowCount; i++) {
+            if(isCancelled())
+                return new ArrayList<Integer>();
             for (int j = 0; j < 50 & count > i * 50 + j; j++) {
                 String year = String.valueOf(params[i * 50 + j]) + "_год";
                 if (params[i * 50 + j] < 0) {
@@ -382,14 +389,14 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             //return listForUpdateInner;
         }
         dbHelper.close();
-        log(Level.INFO, "doInBackground", "GetPageRevIDAsync -> doInBackground success");
+        log(Level.INFO, "GetPageRevID", "GetPageRevID success");
         return listForUpdateInner;
 
     }
 
     private ArrayMap<Integer, Long> GetNewPageRevID(Integer [] params) throws TimeoutException {
         if(isCancelled())
-            return null;
+            return new ArrayMap<Integer, Long>();
 
         int count = listForFirstInit.size();
         int rowCount = count / 50;
@@ -400,6 +407,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         ArrayMap<Integer, Long> pagesWithID = new ArrayMap<Integer, Long>();
 
         for (int i = 0; i < rowCount; i++) {
+            if(isCancelled())
+                return new ArrayMap<Integer, Long>();
             for (int j = 0; j < 50 & count > i * 50 + j; j++) {
                 String year = String.valueOf(listForFirstInit.get(i * 50 + j)) + "_год";
                 if (listForFirstInit.get(i * 50 + j) < 0) {
@@ -418,13 +427,13 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             }
             pages.clear();
         }
-        log(Level.INFO, "doInBackground", "GetNewPageRevIDAsync -> doInBackground success");
+        log(Level.INFO, "GetNewPageRevID", "GetNewPageRevID success");
         return pagesWithID;
     }
 
     private ArrayList<EventWithLex> ParseLexFromEvents(ArrayList<EventModel> events){
         if(isCancelled())
-            return null;
+            return new ArrayList<EventWithLex>();
 
         ArrayList<EventWithLex> eventWithLexList = new ArrayList<EventWithLex>();
 
@@ -508,7 +517,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private List<EventWithLex> GetRedirectForLexemes(List<EventWithLex> eventWithLexes){
         if(isCancelled())
-            return null;
+            return new ArrayList<EventWithLex>();
 
         ArrayList<String> rawLex = new ArrayList<String>();
 
@@ -553,7 +562,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private ArrayList<String> GetPageRedirect(String[] params) throws TimeoutException {
         if(isCancelled())
-            return null;
+            return new ArrayList<String>();
 
         ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
         HashSet<String> paramsSet = new HashSet<String>();
@@ -565,6 +574,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             rowCount++;
 
         for (int i = 0; i < rowCount; i++) {
+            if(isCancelled())
+                return new ArrayList<String>();
             for (int j = 1; j <= 50 & sizeParamsList > i * 50 + j; j++) {
                 paramsSet.add(paramsList.get(i * 50 + j));
             }
@@ -583,14 +594,14 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         for (int i = 0; i < titleWithRedirect.size(); i++) {
             titleWithRedirect.set(i, StringEscapeUtils.unescapeJava(titleWithRedirect.get(i)));
         }
-        log(Level.INFO, "doInBackground", "GetPageRedirectAsync -> doInBackground success");
+        log(Level.INFO, "GetPageRedirect", "GetPageRedirect success");
         return titleWithRedirect;
 
     }
 
     private String GetAddressPageForRedirect(String params[]) throws TimeoutException {
         if(isCancelled())
-            return null;
+            return "";
 
         String str = null;
         try {
@@ -599,14 +610,14 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             isCrached = true;
             e.printStackTrace();
         }
-        log(Level.INFO, "doInBackground", "GetAddressPageForRedirectAsync -> doInBackground success");
+        log(Level.INFO, "GetAddressPageForRedirect", "GetAddressPageForRedirect success");
         return str;
 
     }
 
     private SortedSet<EventModel> GetCoordForEvent(List<EventWithLex> eventWithLexes){
         if(isCancelled())
-            return null;
+            return new TreeSet<EventModel>();
 
         SortedSet<EventModel> events = new TreeSet<EventModel>();
         ArrayList<String> allLexemes = new ArrayList<String>();
@@ -661,7 +672,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private ArrayList<String> GetPageTemplates(String[] strs) throws TimeoutException {
         if(isCancelled())
-            return null;
+            return new ArrayList<String>();
 
         ArrayList<String> lexesList = new ArrayList<String>(Arrays.asList(strs));
 
@@ -674,6 +685,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             rowCount++;
 
         for (int i = 0; i < rowCount; i++) {
+            if(isCancelled())
+                return new ArrayList<String>();
             for (int j = 0; j < 50 & sizeParamsList > i * 50 + j; j++) {
                 tempList.add(lexesList.get(i * 50 + j));
             }
@@ -692,14 +705,14 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             titleWithCoordTemplate.set(i, StringEscapeUtils.unescapeJava(titleWithCoordTemplate.get(i)));
         }
 
-        log(Level.INFO, "doInBackground", "GetPageTemplatesAsync -> doInBackground success");
+        log(Level.INFO, "GetPageTemplates", "GetPageTemplates success");
         return titleWithCoordTemplate;
 
     }
 
     private ArrayMap<String, Coordinate> GetCoords(String[] params) throws TimeoutException {
         if(isCancelled())
-            return null;
+            return new ArrayMap<String, Coordinate>();
 
         ArrayList<String> paramsList = new ArrayList<String>(Arrays.asList(params));
         ArrayMap<String, Coordinate> placesWithCoord = new ArrayMap<String, Coordinate>();
@@ -714,6 +727,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             rowCount++;
 
         for (int i = 0; i < rowCount; i++) {
+            if(isCancelled())
+                return new ArrayMap<String, Coordinate>();
             for (int j = 0; j < 50 & sizeParamsList > i * 50 + j; j++) {
                 tempList.add(paramsList.get(i * 50 + j));
             }
@@ -734,7 +749,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             tempList.clear();
             coord.clear();
         }
-        log(Level.INFO, "doInBackground", "GetCoordsAsynk -> doInBackground success");
+        log(Level.INFO, "GetCoords", "GetCoords success");
         return placesWithCoord;
     }
 
@@ -742,7 +757,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private ArrayList<EventModel> ParseEvent(ArrayMap<Integer, String> eventsByYear){
         if(isCancelled())
-            return null;
+            return new ArrayList<EventModel>();
 
         List<EventModel> eventList = new ArrayList<EventModel>();
 
@@ -755,88 +770,90 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         boolean isDate = false;
 
         for(int i = 0; i < eventsByYear.size(); i++) {
-            isLast = false;
-            String events = eventsByYear.valueAt(i);
+            try {
+                isLast = false;
+                String events = eventsByYear.valueAt(i);
 
-            start = events.indexOf("== —обыти€ ==");
-            if(start < 0) {
-                start = events.indexOf("== ќжидаемые событи€ ==");
-                finish = events.indexOf(" ==\n", start + 24);
-            }
-            else
-                finish = events.indexOf(" ==\n", start + 14);
-            if (finish != -1)
-                events = events.substring(start + 14, finish);
-            else events = events.substring(start + 14);
+                start = events.indexOf("== —обыти€ ==");
+                if (start < 0) {
+                    start = events.indexOf("== ќжидаемые событи€ ==");
+                    finish = events.indexOf(" ==\n", start + 24);
+                } else
+                    finish = events.indexOf(" ==\n", start + 14);
+                if (finish != -1)
+                    events = events.substring(start + 14, finish);
+                else events = events.substring(start + 14);
 
-            startEv = events.indexOf("*");
-            finishEv = events.indexOf("*", startEv + 1);
+                startEv = events.indexOf("*");
+                finishEv = events.indexOf("*", startEv + 1);
 
-            while (finishEv > 0) {
+                while (finishEv > 0) {
 
-                if ((finishEv - startEv) != 1 & (finishEv - startEv) != 0) {
-                    if ((finishEv - startEv) > 3) {
-                        if (finishEv - startEv > 18) {//не дата с последующим разбором
-                            isDate = false;
-                            eventItem = events.substring(startEv + 2, finishEv - 1);
+                    if ((finishEv - startEv) != 1 & (finishEv - startEv) != 0) {
+                        if ((finishEv - startEv) > 3) {
+                            if (finishEv - startEv > 18) {//не дата с последующим разбором
+                                isDate = false;
+                                eventItem = events.substring(startEv + 2, finishEv - 1);
+
+                                eventItem = ParseEventHelperRef(eventItem);
+
+                                log(Level.INFO, "ParseEvent", "new EventModel " + Integer.toString(eventsByYear.keyAt(i)) +
+                                        ": " + eventItem);
+                                eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
+
+                            } else { //дата с последующим разбором
+                                String str = events.substring(startEv + 2, finishEv - 1).trim();
+                                if (str.compareTo("") != 0) {
+                                    isDate = true;
+                                    eventItem = events.substring(startEv + 4, finishEv - 3) + " Ч ";
+                                }
+                            }
+                        }
+                    } else {
+                        if (!isLast & isDate) {
+                            startEv++;
+                            finishEv = events.indexOf("*", startEv + 1);
+
+                            int indxDef = eventItem.indexOf(" Ч ");
+
+                            if (indxDef != -1) {
+                                if (finishEv > -1)
+                                    eventItem = eventItem.substring(0, indxDef + 3) +
+                                            events.substring(startEv + 2, finishEv - 1);
+
+                                else {
+                                    eventItem = eventItem.substring(0, indxDef + 3) +
+                                            events.substring(startEv + 2);
+                                    finishEv = events.length() - 2;
+                                }
+                            } else {
+                                if (finishEv > -1)
+                                    eventItem = eventItem +
+                                            events.substring(startEv + 2, finishEv - 1);
+                                else {
+                                    eventItem = eventItem +
+                                            events.substring(startEv + 2);
+                                    finishEv = events.length() - 2;
+                                }
+                            }
 
                             eventItem = ParseEventHelperRef(eventItem);
 
                             log(Level.INFO, "ParseEvent", "new EventModel " + Integer.toString(eventsByYear.keyAt(i)) +
                                     ": " + eventItem);
                             eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
-
-                        } else { //дата с последующим разбором
-                            String str = events.substring(startEv + 2, finishEv - 1).trim();
-                            if(str.compareTo("") != 0) {
-                                isDate = true;
-                                eventItem = events.substring(startEv + 4, finishEv - 3) + " Ч ";
-                            }
                         }
                     }
-                } else {
-                    if (!isLast & isDate) {
-                        startEv++;
-                        finishEv = events.indexOf("*", startEv + 1);
 
-                        int indxDef = eventItem.indexOf(" Ч ");
-
-                        if (indxDef != -1) {
-                            if(finishEv > -1)
-                                eventItem = eventItem.substring(0, indxDef + 3) +
-                                        events.substring(startEv + 2, finishEv - 1);
-
-                            else {
-                                eventItem = eventItem.substring(0, indxDef + 3) +
-                                        events.substring(startEv + 2);
-                                finishEv = events.length() - 2;
-                            }
-                        }
-                        else {
-                            if(finishEv > -1)
-                                eventItem = eventItem +
-                                        events.substring(startEv + 2, finishEv - 1);
-                            else {
-                                eventItem = eventItem +
-                                        events.substring(startEv + 2);
-                                finishEv = events.length() - 2;
-                            }
-                        }
-
-                        eventItem = ParseEventHelperRef(eventItem);
-
-                        log(Level.INFO, "ParseEvent", "new EventModel " + Integer.toString(eventsByYear.keyAt(i)) +
-                                ": " + eventItem);
-                        eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
+                    startEv = finishEv;
+                    finishEv = events.indexOf("*", startEv + 1);
+                    if (finishEv < 0 & !isLast) {
+                        finishEv = events.indexOf("\n", startEv + 1) + 1;
+                        isLast = true;
                     }
                 }
-
-                startEv = finishEv;
-                finishEv = events.indexOf("*", startEv + 1);
-                if (finishEv < 0 & !isLast) {
-                    finishEv = events.indexOf("\n", startEv + 1) + 1;
-                    isLast = true;
-                }
+            } catch (StringIndexOutOfBoundsException e){
+                continue;
             }
         }
 
@@ -886,7 +903,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private String ParseEventHelperRef(String eventItem){
         if(isCancelled())
-            return null;
+            return "";
 
         int startRef;
         int finishRef;
@@ -933,7 +950,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     private String TrimHooks(String evnt) {
         if(isCancelled())
-            return null;
+            return "";
 
         //int startToNext = start;
         try {
@@ -960,14 +977,14 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
             return evnt;
         } finally {
-            log(Level.INFO, "TrimHooks", "TrimHooks success");
+            //log(Level.INFO, "TrimHooks", "TrimHooks success");
         }
 
     }
 
     private String PunctuationHook(String word){
         if(isCancelled())
-            return null;
+            return "";
 
         word = word.replace(" ", "");
         word = word.replace(",", "");
@@ -980,7 +997,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         word = word.replace("Ч", "");
         word = word.replace("\"", "");
         word = word.replace("'", "");
-        log(Level.INFO, "PunctuationHook", "PunctuationHook success");
+        //log(Level.INFO, "PunctuationHook", "PunctuationHook success");
         return  word;
     }
 
@@ -1045,7 +1062,6 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         }
 
     }
-
 
     private class DBHelper extends SQLiteOpenHelper {
 
