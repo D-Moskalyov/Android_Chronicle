@@ -1,9 +1,18 @@
 package com.chronicle.app;
 
+import android.app.ActionBar;
 import android.app.Activity;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
+import android.graphics.Point;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.util.TypedValue;
+import android.view.Display;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import kankan.wheel.widget.OnWheelChangedListener;
 import kankan.wheel.widget.OnWheelScrollListener;
@@ -82,6 +91,27 @@ public class SettingActivity extends Activity {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.wheel_view_layout);
+
+        LinearLayout linearLayoutStart = (LinearLayout) findViewById(R.id.start);
+        LinearLayout linearLayoutFinish = (LinearLayout) findViewById(R.id.finish);
+
+        int measuredHeight = 0;
+        WindowManager w = getWindowManager();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
+            Point size = new Point();
+            w.getDefaultDisplay().getSize(size);
+            measuredHeight = size.y;
+        } else {
+            Display d = w.getDefaultDisplay();
+            measuredHeight = d.getHeight();
+        }
+
+        ViewGroup.LayoutParams paramsS = linearLayoutStart.getLayoutParams();
+        paramsS.height = measuredHeight / 3;
+
+        ViewGroup.LayoutParams paramsF = linearLayoutFinish.getLayoutParams();
+        paramsF.height = measuredHeight / 3;
 
         final String centurys[] = new String[] {
                 "XX BC", "XIX BC", "XVIII BC", "XVII BC", "XVI BC", "XV BC", "XIV BC", "XIII BC", "XII BC", "XI BC",

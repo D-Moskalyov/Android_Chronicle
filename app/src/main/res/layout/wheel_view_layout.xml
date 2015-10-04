@@ -13,6 +13,7 @@
             android:text="Please select start date"/>
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                  android:id="@+id/start"
                   android:layout_height="wrap_content"
                   android:layout_gravity="center_horizontal"
                   android:layout_width="fill_parent"
@@ -23,15 +24,15 @@
                   android:orientation="horizontal">
 
         <kankan.wheel.widget.WheelView android:id="@+id/century_start"
-                                       android:layout_height="220dp"
+                                       android:layout_height="fill_parent"
                                        android:layout_width="wrap_content"
-                                       android:layout_gravity="center_vertical"
+                                       android:layout_gravity="top"
                                        android:layout_weight="1"/>
 
         <kankan.wheel.widget.WheelView android:id="@+id/year_start"
-                                       android:layout_height="220dp"
+                                       android:layout_height="fill_parent"
                                        android:layout_width="wrap_content"
-                                       android:layout_gravity="center_vertical"
+                                       android:layout_gravity="top"
                                        android:layout_marginLeft="10dp"
                                        android:layout_weight="1"/>
 
@@ -48,6 +49,7 @@
             android:text="Please select finish date"/>
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                  android:id="@+id/finish"
                   android:layout_height="wrap_content"
                   android:layout_gravity="center_horizontal"
                   android:layout_width="fill_parent"
@@ -58,15 +60,15 @@
                   android:orientation="horizontal">
 
         <kankan.wheel.widget.WheelView android:id="@+id/century_finish"
-                                       android:layout_height="220dp"
+                                       android:layout_height="fill_parent"
                                        android:layout_width="wrap_content"
-                                       android:layout_gravity="center_vertical"
+                                       android:layout_gravity="top"
                                        android:layout_weight="1"/>
 
         <kankan.wheel.widget.WheelView android:id="@+id/year_finish"
-                                       android:layout_height="220dp"
+                                       android:layout_height="fill_parent"
                                        android:layout_width="wrap_content"
-                                       android:layout_gravity="center_vertical"
+                                       android:layout_gravity="top"
                                        android:layout_marginLeft="10dp"
                                        android:layout_weight="1"/>
 

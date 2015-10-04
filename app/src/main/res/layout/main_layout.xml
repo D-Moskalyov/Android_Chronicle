@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
 
             android:id="@+id/settingsButton"
-            android:alpha="0.5"
+            android:alpha="0.7"
 
             android:onClick="onClickPreferences"
             android:layout_alignParentTop="true"

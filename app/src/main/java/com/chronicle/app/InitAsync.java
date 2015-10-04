@@ -44,8 +44,8 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     SimpleDateFormat dateFormat;
 
-    DBHelper dbHelper;
-    SQLiteDatabase db;
+    //DBHelper dbHelper;
+    //SQLiteDatabase db;
 
     MainActivity activity;
 
@@ -63,7 +63,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
     protected Void doInBackground(Void... params) {
 
 
-        dbHelper = new DBHelper(activity.context);
+        //activity.dbHelper = new DBHelper(activity.context);
         wikipedia = new Wiki();
 
         isCrached = false;
@@ -136,10 +136,10 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         if(isCancelled())
             return;
 
-        db = dbHelper.getWritableDatabase();
+        activity.db = activity.dbHelper.getWritableDatabase();
         String glYearStart = Integer.toString(activity.globalYearStart);
         String glYearFinish = Integer.toString(activity.globalYearFinish);
-        Cursor cursor = db.query("Pages", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
+        Cursor cursor = activity.db.query("Pages", new String[]{"year", "lastUpdate"}, "year >= ? and year <= ?",
                 new String[]{glYearStart, glYearFinish}, null, null, null);
 
         if(cursor == null || cursor.getCount() == 0){
@@ -169,7 +169,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
                     long diff = today.getTimeInMillis() - thatDay.getTimeInMillis(); //result in millis
 
-                    if (diff / (60 * 1000) > 2) {
+                    if (diff / (60 * 1000) > 1440) {
                         listForUpdate.add(yearFromDB);
                     } else {
                         listForNotUpdate.add(yearFromDB);
@@ -190,7 +190,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         }
 
         cursor.close();
-        dbHelper.close();
+        activity.dbHelper.close();
         log(Level.INFO, "GetPagesForUpdateDeleteCreate", "GetPagesForUpdateDeleteCreate success");
     }
 
@@ -355,9 +355,9 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             return new ArrayList<Integer>();
 
         //long res = Long.parseLong(result[1]);
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        activity.db = activity.dbHelper.getWritableDatabase();
 
-        Cursor cursor = db.query("Pages", new String[]{"year, revisionID"}, "year >= ? and year <= ?",
+        Cursor cursor = activity.db.query("Pages", new String[]{"year, revisionID"}, "year >= ? and year <= ?",
                 new String[]{String.valueOf(activity.globalYearStart), String.valueOf(activity.globalYearFinish)}, null, null, null);
 
         ArrayList<Integer> listForUpdateInner = new ArrayList<Integer>();
@@ -388,7 +388,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             cursor.close();
             //return listForUpdateInner;
         }
-        dbHelper.close();
+        activity.dbHelper.close();
         log(Level.INFO, "GetPageRevID", "GetPageRevID success");
         return listForUpdateInner;
 
@@ -857,9 +857,9 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             }
         }
 
-        db = dbHelper.getWritableDatabase();
+        activity.db = activity.dbHelper.getWritableDatabase();
 
-        Cursor cursor = db.query("Events", new String[]{"year", "event"}, "year >= ? and year <= ?",
+        Cursor cursor = activity.db.query("Events", new String[]{"year", "event"}, "year >= ? and year <= ?",
                 new String[]{String.valueOf(activity.globalYearStart), String.valueOf(activity.globalYearFinish)}, null, null, null);
 
         ArrayList<EventModel> eventsFromDB = new ArrayList<EventModel>();
@@ -886,7 +886,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             }
         }
         cursor.close();
-        dbHelper.close();
+        activity.dbHelper.close();
 
 
         for(EventModel evntMod : eventsFromDB){
@@ -1007,10 +1007,10 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
         if(isCancelled())
             return;
 
-        db = dbHelper.getWritableDatabase();
+        activity.db = activity.dbHelper.getWritableDatabase();
         ContentValues cv = new ContentValues();
 
-        db.beginTransaction();
+        activity.db.beginTransaction();
 
         try {
             for (EventModel eventModel : events) {
@@ -1022,13 +1022,13 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
                     cv.put("longitude", eventModel.coord.getmPosition().longitude);
                 }
 
-                db.insert("Events", null, cv);
+                activity.db.insert("Events", null, cv);
 
                 cv.clear();
             }
 
             for (EventModel eventModel : eventsForDeleteDB) {
-                db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
+                activity.db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
             }
 
             for (PageModel pageModel : pagesForUdateDB) {
@@ -1036,7 +1036,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
                 cv.put("revisionID", pageModel.revID);
                 cv.put("lastUpdate", pageModel.lastUpdate);
 
-                db.update("Pages", cv, "year = ?",
+                activity.db.update("Pages", cv, "year = ?",
                         new String[]{String.valueOf(pageModel.year)});
 
                 cv.clear();
@@ -1048,44 +1048,44 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
                 cv.put("revisionID", pageModel.revID);
                 cv.put("lastUpdate", pageModel.lastUpdate);
 
-                db.insert("Pages", null, cv);
+                activity.db.insert("Pages", null, cv);
 
                 cv.clear();
             }
 
-            db.setTransactionSuccessful();
+            activity.db.setTransactionSuccessful();
 
         } finally {
-            db.endTransaction();
-            dbHelper.close();
+            activity.db.endTransaction();
+            activity.dbHelper.close();
             log(Level.INFO, "WriteDB", "WriteDB success");
         }
 
     }
 
-    private class DBHelper extends SQLiteOpenHelper {
-
-        public DBHelper(Context context){
-            super(context, "chronDB", null, 1);
-            log(Level.INFO, "DBHelper", "DBHelper -> DBHelper success");
-        }
-
-        @Override
-        public void onCreate(SQLiteDatabase db) {
-            db.execSQL("create table Pages " +
-                    "(year integer not null unique, " + "revisionID integer, " + "lastUpdate text)");
-
-            db.execSQL("create table Events " +
-                    "(year integer, " + "event text, " +
-                    "latitude double, " + "longitude double)");
-            log(Level.INFO, "onCreate", "DBHelper -> onCreate success");
-        }
-
-        @Override
-        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            log(Level.INFO, "onUpgrade", "DBHelper -> onUpgrade success");
-        }
-    }
+//    private class DBHelper extends SQLiteOpenHelper {
+//
+//        public DBHelper(Context context){
+//            super(context, "chronDB", null, 1);
+//            log(Level.INFO, "DBHelper", "DBHelper -> DBHelper success");
+//        }
+//
+//        @Override
+//        public void onCreate(SQLiteDatabase db) {
+//            db.execSQL("create table Pages " +
+//                    "(year integer not null unique, " + "revisionID integer, " + "lastUpdate text)");
+//
+//            db.execSQL("create table Events " +
+//                    "(year integer, " + "event text, " +
+//                    "latitude double, " + "longitude double)");
+//            log(Level.INFO, "onCreate", "DBHelper -> onCreate success");
+//        }
+//
+//        @Override
+//        public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+//            log(Level.INFO, "onUpgrade", "DBHelper -> onUpgrade success");
+//        }
+//    }
 
 
 

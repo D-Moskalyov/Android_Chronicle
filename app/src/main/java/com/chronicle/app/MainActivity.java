@@ -73,11 +73,25 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         super.onCreate(savedInstanceState);
         context = getApplicationContext();
 
-        initAsync = (InitAsync) getLastCustomNonConfigurationInstance();
+        RetainObj retainObj = (RetainObj) getLastCustomNonConfigurationInstance();
+        if(retainObj != null) {
+            initAsync = retainObj.initAsync;
+            dbHelper = retainObj.dbHelper;
+            db = retainObj.db;
+        }
+
+        if(dbHelper == null){
+            dbHelper = new DBHelper(context);
+            dbHelper.onCreate(db);
+            //dbHelper.getReadableDatabase();
+        }
+
+        //initAsync = (InitAsync) getLastCustomNonConfigurationInstance();
         if(initAsync == null) {
             initAsync = new InitAsync();
             //initAsync.execute();
         }
+
         if(initAsync.getStatus() == AsyncTask.Status.FINISHED)
             initAsync = new InitAsync();
         initAsync.link(this);
@@ -105,8 +119,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         cm = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
         activeNetwork = cm.getActiveNetworkInfo();
-
-        dbHelper = new DBHelper(context);
 
         InitClusterer();
 
@@ -264,8 +276,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     public Object onRetainCustomNonConfigurationInstance() {
 
         initAsync.unLink();
+
+        RetainObj retainObj = new RetainObj(initAsync, dbHelper, db);
         Log.i("onRetainCustomNonC...", "onRetainCustomNonC... success");
-        return initAsync;
+        return retainObj;
     }
 
 
@@ -511,13 +525,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             markerOptions.icon(BitmapDescriptorFactory.fromResource(item.iconID))
                     .title(item.eventWithYears.get(0).text)
                     .snippet(Integer.toString(item.eventWithYears.get(0).year));
-            Log.i("onBeforeClusterItemR...", "EventRenderer -> onBeforeClusterItemR...");
+            //Log.i("onBeforeClusterItemR...", "EventRenderer -> onBeforeClusterItemR...");
         }
 
         @Override
         protected boolean shouldRenderAsCluster(Cluster cluster) {
             // Always render clusters.
-            Log.i("shouldRenderAsCluster", "EventRenderer -> shouldRenderAsCluster success");
+            //Log.i("shouldRenderAsCluster", "EventRenderer -> shouldRenderAsCluster success");
             return cluster.getSize() > 1;
         }
     }
