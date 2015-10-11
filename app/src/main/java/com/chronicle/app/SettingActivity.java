@@ -12,6 +12,8 @@ import android.util.TypedValue;
 import android.view.Display;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import kankan.wheel.widget.OnWheelChangedListener;
@@ -33,6 +35,7 @@ public class SettingActivity extends Activity {
     WheelView centuryFinish = null;
     WheelView yearStart = null;
     WheelView yearFinish = null;
+    CheckBox checkBox = null;
 
     TextView intervalText;
 
@@ -92,6 +95,9 @@ public class SettingActivity extends Activity {
 
         setContentView(R.layout.wheel_view_layout);
 
+        mySharedPreferences = getSharedPreferences(getString(R.string.preference_file_key), 0);
+        boolean isOfflineOnly = mySharedPreferences.getBoolean("isOfflineOnly", true);
+
         LinearLayout linearLayoutStart = (LinearLayout) findViewById(R.id.start);
         LinearLayout linearLayoutFinish = (LinearLayout) findViewById(R.id.finish);
 
@@ -108,10 +114,10 @@ public class SettingActivity extends Activity {
         }
 
         ViewGroup.LayoutParams paramsS = linearLayoutStart.getLayoutParams();
-        paramsS.height = measuredHeight / 3;
+        paramsS.height = measuredHeight / 4;
 
         ViewGroup.LayoutParams paramsF = linearLayoutFinish.getLayoutParams();
-        paramsF.height = measuredHeight / 3;
+        paramsF.height = measuredHeight / 4;
 
         final String centurys[] = new String[] {
                 "XX BC", "XIX BC", "XVIII BC", "XVII BC", "XVI BC", "XV BC", "XIV BC", "XIII BC", "XII BC", "XI BC",
@@ -122,6 +128,12 @@ public class SettingActivity extends Activity {
         indexOfFirstCenturyAC = (int)getResources().getInteger(R.integer.firstCenturyAC) - 1;
 
         intervalText = (TextView) findViewById(R.id.intervalText);
+        checkBox = (CheckBox) findViewById(R.id.isOffline);
+
+        if(isOfflineOnly)
+            checkBox.setChecked(true);
+        else
+            checkBox.setChecked(false);
 
         centuryStart = (WheelView) findViewById(R.id.century_start);
         centuryStart.setVisibleItems(5);
@@ -157,7 +169,21 @@ public class SettingActivity extends Activity {
         yearFinish.setViewAdapter(yearAdapter);
         yearFinish.setCurrentItem(40);
 
-        centuryStart.addScrollingListener(new OnWheelScrollListener() {
+        checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                SharedPreferences.Editor editor = mySharedPreferences.edit();
+
+                if(isChecked)
+                    editor.putBoolean("isOfflineOnly", true);
+                else
+                    editor.putBoolean("isOfflineOnly", false);
+
+                editor.apply();
+            }
+        });
+
+    centuryStart.addScrollingListener(new OnWheelScrollListener() {
             @Override
             public void onScrollingStarted(WheelView wheel) {
                 scrolling = true;
@@ -204,7 +230,7 @@ public class SettingActivity extends Activity {
                     SharedPreferences.Editor editor = mySharedPreferences.edit();
                     editor.putInt("centStartIndx", centuryStart.getCurrentItem());
                     editor.apply();
-                    //установить строку
+                    //установит строку
                     intervalText.setText(MakeIntervalString(centuryStart, centuryFinish, yearStart, yearFinish));
                 }
             }
@@ -217,7 +243,7 @@ public class SettingActivity extends Activity {
                     SharedPreferences.Editor editor = mySharedPreferences.edit();
                     editor.putInt("centFinishIndx", centuryFinish.getCurrentItem());
                     editor.apply();
-                    //установить строку
+                    //установит строку
                     intervalText.setText(MakeIntervalString(centuryStart, centuryFinish, yearStart, yearFinish));
                 }
             }
@@ -274,7 +300,7 @@ public class SettingActivity extends Activity {
                     editor.putInt("yearStartIndx", yearStart.getCurrentItem());
                     editor.apply();
 
-                    //установить строку
+                    //установит строку
                     intervalText.setText(MakeIntervalString(centuryStart, centuryFinish, yearStart, yearFinish));
                 }
             }
@@ -287,7 +313,7 @@ public class SettingActivity extends Activity {
                     SharedPreferences.Editor editor = mySharedPreferences.edit();
                     editor.putInt("yearFinishIndx", yearFinish.getCurrentItem());
                     editor.apply();
-                    //установить строку
+                    //установит строку
                     intervalText.setText(MakeIntervalString(centuryStart, centuryFinish, yearStart, yearFinish));
                 }
             }

@@ -137,6 +137,23 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if (globalYearFinish < 0) textBtn += globalYearFinish * -1 + "бя";
         else textBtn += globalYearFinish;
 
+        settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
+        if(settings.getBoolean("isOfflineOnly", true)){
+            if (initAsync.getStatus() == AsyncTask.Status.RUNNING) {
+                initAsync.cancel(false);
+                mainButton.setText("STOPPING");
+            }
+
+            else {
+                mainButton.setText(textBtn);
+
+                MakeMarkers();
+                mClusterManager.cluster();
+            }
+
+            return;
+        }
+
         if (globalYearFinish == innerYearfinish && globalYearStart == innerYearStart){
             if(initAsync.getStatus() == AsyncTask.Status.RUNNING)
                 mainButton.setText("UPDATING");

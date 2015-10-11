@@ -22,9 +22,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 
-/**
- * Created by пїЅпїЅпїЅпїЅпїЅпїЅпїЅ on 17.08.2015.
- */
 public class Wiki implements Serializable{
 
     public static final int ASSERT_NONE = 0;
@@ -297,7 +294,7 @@ public class Wiki implements Serializable{
             addressToRedirect = temp.substring(x, y);
         }
         else{
-            x = temp.indexOf("#РїРµСЂРµРЅР°РїСЂР°РІР»РµРЅРёРµ [[");
+            x = temp.indexOf("#перенаправление [[");
             if(x >= 0){
                 x += 19;
                 y = temp.indexOf("]]", x);

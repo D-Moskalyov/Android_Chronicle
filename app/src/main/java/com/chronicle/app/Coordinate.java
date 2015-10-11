@@ -7,9 +7,6 @@ import com.google.maps.android.clustering.ClusterManager;
 
 import java.util.Comparator;
 
-/**
- * Created by ������� on 03.09.2015.
- */
 public class Coordinate implements ClusterItem, Comparable<Coordinate>, ClusterManager.OnClusterItemClickListener<Coordinate> {
     public LatLng getmPosition() {
         return mPosition;

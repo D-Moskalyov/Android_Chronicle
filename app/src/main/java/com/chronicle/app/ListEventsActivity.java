@@ -48,6 +48,7 @@ public class ListEventsActivity extends Activity {
             textViewYear.setTextColor(Color.parseColor("#000000"));
             //textViewYear.setGravity(Gravity.RIGHT);
             textViewYear.setTextSize(18);
+            textViewEvent.setTextSize(22);
             textViewYear.setBackgroundColor(Color.parseColor("#d3d3d3"));
             textViewEvent.setText(eventWithYear.text);
             textViewYear.setText(String.valueOf(eventWithYear.year));

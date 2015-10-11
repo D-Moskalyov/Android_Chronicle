@@ -3,14 +3,32 @@
               android:orientation="vertical"
               android:layout_width="match_parent"
               android:layout_height="match_parent">
+
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                  android:layout_gravity="right"
+                  android:layout_height="wrap_content"
+                  android:layout_width="wrap_content"
+                  android:layout_marginRight="6dp"
+                  android:orientation="horizontal">
+        <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:layout_gravity="right|center_vertical"
+                android:text="offline only"/>
+        <CheckBox android:id="@+id/isOffline"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_gravity="right"/>
+    </LinearLayout>
     <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="10dp"
             android:layout_marginLeft="24dp"
             android:layout_gravity="left"
             android:textSize="20sp"
-            android:text="Please select start date"/>
+            android:text="Start date"/>
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                   android:id="@+id/start"
@@ -19,8 +37,8 @@
                   android:layout_width="fill_parent"
                   android:paddingLeft="12dp"
                   android:paddingRight="12dp"
-                  android:paddingTop="4dp"
-                  android:layout_marginTop="8dp"
+                  android:paddingTop="3dp"
+                  android:layout_marginTop="3dp"
                   android:orientation="horizontal">
 
         <kankan.wheel.widget.WheelView android:id="@+id/century_start"
@@ -42,11 +60,11 @@
     <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="10dp"
             android:layout_marginLeft="24dp"
             android:layout_gravity="left"
             android:textSize="20sp"
-            android:text="Please select finish date"/>
+            android:text="Finish date"/>
 
     <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
                   android:id="@+id/finish"
@@ -55,8 +73,8 @@
                   android:layout_width="fill_parent"
                   android:paddingLeft="12dp"
                   android:paddingRight="12dp"
-                  android:paddingTop="4dp"
-                  android:layout_marginTop="8dp"
+                  android:paddingTop="3dp"
+                  android:layout_marginTop="3dp"
                   android:orientation="horizontal">
 
         <kankan.wheel.widget.WheelView android:id="@+id/century_finish"
@@ -78,9 +96,9 @@
     <TextView android:id="@+id/intervalText"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="15dp"
             android:layout_gravity="center_horizontal"
-            android:textSize="26sp"
-            android:text="1111"/>
+            android:textSize="22sp"
+            android:text=""/>
 
 </LinearLayout>

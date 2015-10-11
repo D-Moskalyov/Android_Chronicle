@@ -2,11 +2,13 @@ package com.chronicle.app;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.os.AsyncTask;
 import android.support.v4.util.ArrayMap;
+import android.util.Log;
 import android.widget.Toast;
 import com.google.android.gms.maps.model.LatLng;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -23,15 +25,13 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * Created by Дмитрий on 01.10.2015.
- */
 public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     Wiki wikipedia;
 
     List<String> wordBaseForms;
     char noun = 'С';
+    SharedPreferences settings;
 
     ArrayList<Integer> listForFirstInit;
     ArrayList<Integer> listForUpdate;
@@ -61,7 +61,11 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
     @Override
     protected Void doInBackground(Void... params) {
+        settings = activity.getSharedPreferences(activity.getString(R.string.preference_file_key), 0);
+        boolean isOfflineOnly = settings.getBoolean("isOfflineOnly", true);
 
+        if(isOfflineOnly)
+            return null;
 
         //activity.dbHelper = new DBHelper(activity.context);
         wikipedia = new Wiki();
@@ -484,7 +488,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
                 String lex = "";
 
                 rawWord = rawWord.toLowerCase();
-                try {//из здесь
+                try {//
                     try {
                         wordBaseForms = luceneMorph.getMorphInfo(rawWord);
                     } catch (Exception e){wordBaseForms = null;}
@@ -647,7 +651,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
                     int ind = placesWithCoord.indexOfKey(lexFromEvent);
                     if(ind >= 0){
                         eventWithLexes.get(i).evntModel.coord = placesWithCoord.valueAt(ind);
-                        //здесь присваиваются первые попавшиеся координаты
+                        //
 
                         break;
                     }
@@ -791,7 +795,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
                     if ((finishEv - startEv) != 1 & (finishEv - startEv) != 0) {
                         if ((finishEv - startEv) > 3) {
-                            if (finishEv - startEv > 18) {//не дата с последующим разбором
+                            if (finishEv - startEv > 18) {//
                                 isDate = false;
                                 eventItem = events.substring(startEv + 2, finishEv - 1);
 
@@ -801,7 +805,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
                                         ": " + eventItem);
                                 eventList.add(new EventModel(eventItem, eventsByYear.keyAt(i)));
 
-                            } else { //дата с последующим разбором
+                            } else { //
                                 String str = events.substring(startEv + 2, finishEv - 1).trim();
                                 if (str.compareTo("") != 0) {
                                     isDate = true;
@@ -1028,6 +1032,7 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
             }
 
             for (EventModel eventModel : eventsForDeleteDB) {
+                Log.i("eventsForDeleteDB", eventModel.text + " " + String.valueOf(eventModel.year));
                 activity.db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
             }
 
