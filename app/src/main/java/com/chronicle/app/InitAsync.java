@@ -1033,7 +1033,9 @@ public class InitAsync extends AsyncTask<Void, Void, Void> {
 
             for (EventModel eventModel : eventsForDeleteDB) {
                 Log.i("eventsForDeleteDB", eventModel.text + " " + String.valueOf(eventModel.year));
-                activity.db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
+                activity.db.delete("Events", "year = ? and event = ?",
+                        new String[]{String.valueOf(eventModel.year),  eventModel.text});
+                //activity.db.delete("Events", "year = " + String.valueOf(eventModel.year) + " and event = \"" + eventModel.text + "\"", null);
             }
 
             for (PageModel pageModel : pagesForUdateDB) {

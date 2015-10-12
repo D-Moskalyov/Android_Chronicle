@@ -48,6 +48,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     int innerYearStart;
     int innerYearfinish;
+    boolean isOfflineOnly;
 
     String textBtn;
 
@@ -115,7 +116,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         if(savedInstanceState != null) {
             innerYearStart = savedInstanceState.getInt("innerYearStart", 0);
             innerYearfinish = savedInstanceState.getInt("innerYearfinish", 0);
+            isOfflineOnly = savedInstanceState.getBoolean("isOfflineOnly", true);
         }
+        else
+            isOfflineOnly = true;
 
         cm = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
         activeNetwork = cm.getActiveNetworkInfo();
@@ -139,6 +143,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         settings = getSharedPreferences(getString(R.string.preference_file_key), 0);
         if(settings.getBoolean("isOfflineOnly", true)){
+            isOfflineOnly = true;
+
             if (initAsync.getStatus() == AsyncTask.Status.RUNNING) {
                 initAsync.cancel(false);
                 mainButton.setText("STOPPING");
@@ -154,7 +160,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
 
-        if (globalYearFinish == innerYearfinish && globalYearStart == innerYearStart){
+        if (globalYearFinish == innerYearfinish && globalYearStart == innerYearStart && isOfflineOnly == false){
+
             if(initAsync.getStatus() == AsyncTask.Status.RUNNING)
                 mainButton.setText("UPDATING");
             else
@@ -165,6 +172,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             return;
         }
         //justRotate = true;
+        isOfflineOnly = false;
 
         innerYearStart = globalYearStart;
         innerYearfinish = globalYearFinish;
@@ -257,6 +265,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         //super.onSaveInstanceState(outState);
         outState.putInt("innerYearStart", innerYearStart);
         outState.putInt("innerYearfinish", innerYearfinish);
+        outState.putBoolean("isOfflineOnly", isOfflineOnly);
     }
 
     @Override
